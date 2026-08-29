@@ -35,7 +35,7 @@ class ReleaseGateTests(unittest.TestCase):
     def test_release_entrypoint_uses_final_ui_layer(self):
         text = (ROOT / "cammetry.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "0.5.1"', text)
-        self.assertIn("from tts_release_ui import App", text)
+        self.assertIn("from tts_final_ui import App", text)
 
 
 if __name__ == "__main__":
