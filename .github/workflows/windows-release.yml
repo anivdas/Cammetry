@@ -36,11 +36,26 @@ jobs:
         shell: pwsh
         run: .\Build-Release.ps1
 
-      - name: Upload unsigned test artifacts
+      - name: Upload Setup installer
         uses: actions/upload-artifact@v4
         with:
-          name: Cammetry-Windows-v0.5.1-UNSIGNED-BETA
-          path: release/*
+          name: Cammetry-Setup-v0.5.1-UNSIGNED-BETA
+          path: release/Cammetry-Setup-v0.5.1.exe
+          if-no-files-found: error
+
+      - name: Upload portable EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cammetry-Portable-EXE-v0.5.1-UNSIGNED-BETA
+          path: release/Cammetry-Portable-v0.5.1.exe
+          if-no-files-found: error
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cammetry-Portable-ZIP-v0.5.1-UNSIGNED-BETA
+          path: release/Cammetry-Portable-v0.5.1.zip
+          if-no-files-found: error
 
       - name: Signing notice
         shell: pwsh
