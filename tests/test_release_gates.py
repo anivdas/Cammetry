@@ -58,6 +58,17 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn('Recording profile:', text)
         self.assertIn('pseudo-isometric EV silhouette', text)
 
+    def test_transport_uses_media_style_seek_controls_and_subtle_button_states(self):
+        transport = (ROOT / "tts_transport_polish.py").read_text(encoding="utf-8")
+        beta = (ROOT / "tts_beta_ui.py").read_text(encoding="utf-8")
+        self.assertIn("class TransportSeekButton", transport)
+        self.assertIn("Curved seek glyph", transport)
+        self.assertIn("0.025", transport)
+        self.assertIn("<ButtonRelease-1>", transport)
+        self.assertIn("TransportSeekButton(", beta)
+        self.assertNotIn('flat_button(row, f"-{seek}s"', beta)
+        self.assertNotIn('flat_button(row, f"+{seek}s"', beta)
+
     def test_hardware_encoder_probe_uses_normal_video_dimensions(self):
         text = (ROOT / "tts_ui_polish.py").read_text(encoding="utf-8")
         self.assertIn("s=640x360", text)
@@ -111,7 +122,7 @@ class ReleaseGateTests(unittest.TestCase):
         text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         for module in (
             "tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py",
-            "tts_beta_ui.py", "tts_export_guard.py", "tts_hotfix_ui.py",
+            "tts_beta_ui.py", "tts_export_guard.py", "tts_hotfix_ui.py", "tts_transport_polish.py",
         ):
             self.assertIn(module, text)
 
