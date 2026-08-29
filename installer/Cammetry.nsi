@@ -4,7 +4,7 @@ Unicode true
 !include "WinMessages.nsh"
 
 !define APP_NAME "Cammetry"
-!define APP_VERSION "0.5.0"
+!define APP_VERSION "0.5.1"
 !define APP_EXE "Cammetry.exe"
 !define APP_DIR "Cammetry"
 !define APP_REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cammetry"
@@ -19,7 +19,7 @@ Icon "..\assets\app.ico"
 UninstallIcon "..\assets\app.ico"
 BrandingText "Cammetry - free open source"
 
-VIProductVersion "0.5.0.0"
+VIProductVersion "0.5.1.0"
 VIAddVersionKey "ProductName" "${APP_NAME}"
 VIAddVersionKey "ProductVersion" "${APP_VERSION}"
 VIAddVersionKey "FileVersion" "${APP_VERSION}"
@@ -63,9 +63,6 @@ VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Cammetry contributors"
 
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
-; Close a currently installed Cammetry instance before replacing files.
-; We first ask the visible application to close normally, then use taskkill only
-; as a safety net so upgrades cannot leave locked files behind.
 Function EnsureCammetryClosed
   ReadRegStr $0 HKLM "${APP_REGKEY}" "DisplayVersion"
   StrCmp $0 "" ensure_force_cleanup
@@ -81,8 +78,6 @@ ensure_close_window:
   Sleep 1200
 
 ensure_force_cleanup:
-  ; Harmless when the process is not running. This also catches a hidden or
-  ; orphaned Cammetry process that no longer has a normal main window.
   nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /F /T /IM "${APP_EXE}"'
   Pop $2
   Pop $3
@@ -93,8 +88,6 @@ ensure_abort:
   Abort
 FunctionEnd
 
-; Uninstaller equivalent. The exact current-version title lets us warn the user
-; before closing the app, then taskkill guarantees the install tree is unlocked.
 Function un.EnsureCammetryClosed
   FindWindow $0 "" "${APP_NAME} ${APP_VERSION}"
   StrCmp $0 0 un_force_cleanup
@@ -171,8 +164,5 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\${APP_DIR}"
   DeleteRegKey HKLM "${APP_REGKEY}"
   DeleteRegKey HKLM "Software\Cammetry"
-
-  ; The running app has already been closed in un.onInit. Remove immediately;
-  ; /REBOOTOK is only a final safety net for an unexpected external file lock.
   RMDir /r /REBOOTOK "$INSTDIR"
 SectionEnd
