@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement to Cammetry
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Problem or use case
+      description: What would this help you do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy/network impact
+      description: Does the feature send footage, GPS, or metadata off-device?

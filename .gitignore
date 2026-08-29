@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+.build-venv/
+.pytest_cache/
+
+# Build outputs
+build/
+dist/
+dist-installer/
+dist-portable/
+release/
+*.spec
+
+# Downloaded runtimes
+ffmpeg_bin/*.exe
+ffmpeg_bin/*.dll
+ffmpeg_bin/*.zip
+
+# Local settings / logs
+*.log
+settings.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Private media / TeslaCam data
+TeslaCam/
+RecentClips/
+SavedClips/
+SentryClips/
+*.mp4
+*.mov
+*.csv
+
+# Keep project screenshots/assets only when deliberately tracked under docs/assets or assets.

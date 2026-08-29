@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a reproducible Cammetry problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please do not upload private TeslaCam footage or GPS data unless you intentionally want it public."
+  - type: input
+    id: version
+    attributes:
+      label: Cammetry version
+      placeholder: "0.5.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: ["Windows 11", "Windows 10", "Linux", "macOS", "Other"]
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include clear reproduction steps and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Clip details (no private footage required)
+      description: Vehicle hardware generation if known, firmware if known, camera filename pattern, and whether telemetry was detected.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error text or logs
+      render: shell
