@@ -4,6 +4,8 @@ from __future__ import annotations
 import os
 import sys
 
+APP_VERSION = "0.5.1"
+
 
 def enable_windows_dpi_awareness() -> None:
     if os.name != "nt":
@@ -20,7 +22,9 @@ def enable_windows_dpi_awareness() -> None:
 
 def main() -> int:
     enable_windows_dpi_awareness()
-    from tts_ui import App
+    import tts_core
+    tts_core.APP_VERSION = APP_VERSION
+    from tts_hotfix_ui import App
     app = App()
     app.mainloop()
     return 0

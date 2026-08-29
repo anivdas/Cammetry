@@ -1,26 +1,31 @@
-# Publishing and sharing roadmap
+# Publishing and sharing
 
-Cammetry should treat **Share / Publish** as a first-class workflow rather than exposing a raw upload-endpoint setting to normal users.
+Cammetry treats **Publish / Share** as a first-class workflow rather than exposing a raw upload-endpoint setting to normal users.
 
-## Planned v0.5.1 experience
+## v0.5.1 beta experience
 
-The main Share / Publish action should open a compact menu or dialog with user-friendly destinations:
+The main Publish action opens a compact destination dialog with safe, usable choices:
 
-- **YouTube** — direct upload after the user connects their Google/YouTube account with OAuth 2.0.
-- **Temporary Link** — upload through the existing optional Cammetry/self-hosted sharing endpoint when configured.
-- **Vimeo** — optional direct upload for users who connect an account/app with upload access.
-- **TikTok** — future integration through TikTok's Content Posting API after application approval/audit requirements are satisfied.
+- **YouTube** — opens the official YouTube Studio upload page for the exported MP4.
+- **Vimeo** — opens Vimeo's official upload page.
+- **TikTok** — opens TikTok's official upload page where available.
+- **Temporary Link** — uses the existing optional Cammetry/self-hosted sharing endpoint when configured; otherwise it is shown as optional/not configured rather than throwing an error.
 - **Reveal Export in Folder** — always available.
 - **Copy File Path** — always available.
-- **Open platform upload page** — fallback for services where direct API integration is unavailable or not configured.
 
-The app should never show a raw "no endpoint configured" warning merely because the user clicks Share. Network destinations that require setup should clearly show **Connect** or **Not configured**, while local actions remain usable.
+The dialog includes a privacy reminder because an exported clip may contain GPS/minimap information, timestamps, faces, license plates, or other sensitive details.
 
-## YouTube
+This beta intentionally does **not** pretend that Cammetry has authenticated platform accounts when no official Cammetry developer application has been registered. The upload-page handoff keeps publishing functional without asking for passwords, scraping browser sessions, or embedding unofficial credentials.
 
-Use the official YouTube Data API and the `youtube.upload` OAuth scope. Desktop authorization should use the installed-application OAuth flow and system browser. Tokens should be stored per-user and must never be committed to the repository.
+## Authenticated direct publishing
 
-A publish dialog should allow at minimum:
+Direct in-app uploads are tracked separately in GitHub issue #7 and will be added after the required platform developer applications, OAuth credentials, and any public-app verification/approval are in place.
+
+### YouTube
+
+The planned connector will use the official YouTube Data API and the `youtube.upload` OAuth scope. Desktop authorization should use the installed-application OAuth flow and system browser. Tokens must be stored per-user and must never be committed to the repository.
+
+The eventual direct publish dialog should allow at minimum:
 
 - title;
 - description;
@@ -30,14 +35,16 @@ A publish dialog should allow at minimum:
 - cancel/retry where practical;
 - link to the uploaded video after completion.
 
-Public Cammetry distributions may require Google OAuth application verification before the authorization experience is suitable for general users.
+A public Cammetry distribution may require Google OAuth application verification before the authorization experience is suitable for general users.
+
+### Other platforms
+
+Vimeo direct upload remains modular and depends on Cammetry's developer application having API upload access. TikTok direct posting must use the official Content Posting API and remains dependent on required developer-app approval/audit. The upload-page handoff remains useful even after direct connectors exist.
 
 ## Platform requirements
 
-Direct publishing integrations must use official APIs and explicit user authorization. Cammetry should not request account passwords or scrape browser sessions.
-
-Some services require developer-app approval or review before unrestricted posting is available. Integrations should remain modular so the core local viewer/exporter never depends on those approvals.
+Direct publishing integrations must use official APIs and explicit user authorization. Cammetry does not request account passwords or scrape browser sessions. Network publishing must remain optional so the core local viewer/exporter never depends on third-party availability or approval.
 
 ## Privacy
 
-Publishing is always explicit. Cammetry should remind users that exported clips may contain precise GPS data, timestamps, license plates, faces, and other sensitive details. The publish dialog should surface the existing blur and GPS-overlay settings before upload when relevant.
+Publishing is always explicit. Users should review GPS/minimap overlays, timestamps, blur zones, faces, plates, and other identifying content before posting a clip publicly.

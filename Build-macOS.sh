@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-VERSION="$(python3 -c 'from tts_core import APP_VERSION; print(APP_VERSION)')"
+VERSION="0.5.1"
 ARCH="$(uname -m)"
 case "$ARCH" in
   arm64|aarch64) RELEASE_ARCH="arm64" ;;
@@ -60,7 +60,6 @@ fi
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep --strict "$APP"
 
-# Remove PyInstaller intermediates before packaging to preserve runner disk space.
 rm -rf build
 
 ZIP="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.zip"
@@ -68,7 +67,6 @@ ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
 SHA_FILE="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.sha256.txt"
 if [[ "$RELEASE_ARCH" == "arm64" ]]; then
-  # Apple Silicon hosted runners have enough headroom for the user-friendly DMG.
   ln -s /Applications "dist/Applications"
   DMG="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.dmg"
   hdiutil create -volname "Cammetry" -srcfolder "dist" -ov -format UDZO "$DMG" >/dev/null
@@ -78,9 +76,6 @@ if [[ "$RELEASE_ARCH" == "arm64" ]]; then
   echo "  $DMG"
   echo "  $ZIP"
 else
-  # GitHub's hosted Intel image has very limited free disk after the native app
-  # is frozen. Publish the signed app bundle as a ZIP rather than risking a
-  # failing DMG build. Users can unzip and drag Cammetry.app to Applications.
   shasum -a 256 "$ZIP" | tee "$SHA_FILE"
   echo "macOS Intel release created:"
   echo "  $ZIP"
