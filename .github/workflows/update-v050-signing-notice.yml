@@ -1,0 +1,55 @@
+name: One-time v0.5.0 signing notice
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  update-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update v0.5.0 release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Cammetry v0.5.0
+
+          First public Cammetry pre-release.
+
+          Cammetry is a free, open-source, local-first TeslaCam viewer, telemetry explorer, and multi-camera exporter. Official Cammetry releases are intended to remain free of charge, with no paid tier, subscription, advertising requirement, or telemetry-selling business model.
+
+          ### Downloads
+          - **Windows:** use `Cammetry-Setup-v0.5.0.exe` for the normal experience, or the portable EXE/ZIP if you do not want to install the application.
+          - **macOS Apple Silicon:** use the `arm64` DMG on M-series Macs. A ZIP is also provided.
+          - **macOS Intel:** use the `x86_64` ZIP, unzip it, and drag `Cammetry.app` to Applications.
+
+          ### Highlights
+          - Up to six synchronized TeslaCam camera views
+          - Embedded SEI telemetry decoding where available
+          - Speed, gear, steering, pedals, braking, GPS, heading, acceleration, and driver-assistance state
+          - Route, timeline, event browsing, snapshots, trimming, CSV export, privacy blur, and telemetry overlays
+          - NVIDIA NVENC, Intel Quick Sync, AMD AMF, Apple VideoToolbox, and CPU encoding where supported
+          - 13-language UI/message support
+          - Local processing by default with no Tesla account required and no anonymous analytics
+
+          ### Code signing policy
+
+          **Free code signing provided by SignPath.io, certificate by SignPath Foundation.**
+
+          The project code-signing policy is published at:
+          https://github.com/anivdas/Cammetry/blob/main/CODE_SIGNING_POLICY.md
+
+          **v0.5.0 predates Cammetry's SignPath enrollment and its Windows executables are unsigned.** Future official Windows releases are designed to fail closed unless the SignPath signing path is configured and the returned Authenticode signatures validate successfully.
+
+          ### Important
+          This is a pre-1.0 community release. Preserve your original TeslaCam files and report bugs through GitHub Issues without uploading private footage or location data unless you intentionally choose to share it.
+
+          The current macOS packages are ad-hoc signed but not Apple-notarized, so Gatekeeper may display an unidentified-developer warning.
+
+          Cammetry is independent software and is not affiliated with, endorsed by, sponsored by, or produced by Tesla, Inc.
+          EOF
+          gh release edit v0.5.0 --repo anivdas/Cammetry --notes-file release-notes.md --prerelease
