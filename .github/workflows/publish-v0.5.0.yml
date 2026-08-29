@@ -48,8 +48,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
-      - name: Build macOS app and DMG
+      - name: Build macOS app package
         run: ./Build-macOS.sh
       - name: Stage macOS artifacts
         uses: actions/upload-artifact@v4
@@ -85,9 +84,9 @@ jobs:
             Cammetry is a free, open-source, local-first TeslaCam viewer, telemetry explorer, and multi-camera exporter. Official Cammetry releases are intended to remain free of charge, with no paid tier, subscription, advertising requirement, or telemetry-selling business model.
 
             ### Downloads
-            - **Windows:** use the `Cammetry-Setup-v0.5.0.exe` installer for the normal experience, or the portable build if you do not want to install the application.
-            - **macOS Apple Silicon:** use the `arm64` DMG on M-series Macs.
-            - **macOS Intel:** use the `x86_64` DMG on Intel Macs.
+            - **Windows:** use `Cammetry-Setup-v0.5.0.exe` for the normal experience, or the portable EXE/ZIP if you do not want to install the application.
+            - **macOS Apple Silicon:** use the `arm64` DMG on M-series Macs. A ZIP is also provided.
+            - **macOS Intel:** use the `x86_64` ZIP, unzip it, and drag `Cammetry.app` to Applications.
 
             ### Highlights
             - Up to six synchronized TeslaCam camera views
@@ -100,6 +99,8 @@ jobs:
 
             ### Important
             This is a pre-1.0 community release. Preserve your original TeslaCam files and report bugs through GitHub Issues without uploading private footage or location data unless you intentionally choose to share it.
+
+            The current macOS packages are ad-hoc signed but not Apple-notarized, so Gatekeeper may display an unidentified-developer warning.
 
             Cammetry is independent software and is not affiliated with, endorsed by, sponsored by, or produced by Tesla, Inc.
           files: release-assets/*

@@ -25,16 +25,12 @@ if (-not (Test-Path $Python)) {
 & $Python -m pip install --upgrade pip
 & $Python -m pip install -r requirements-build.txt
 
-# Generate the Windows .ico from the project-owned PNG so the repository only
-# needs one source icon asset. Pillow is installed by requirements-build.txt.
 $IconPng = Join-Path $PSScriptRoot 'assets\app.png'
 $IconIco = Join-Path $PSScriptRoot 'assets\app.ico'
 if (-not (Test-Path $IconIco)) {
     & $Python -c "from PIL import Image; Image.open(r'$IconPng').convert('RGBA').save(r'$IconIco', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
 }
 
-# Bundle a full Windows FFmpeg build so fresh installations can use NVENC,
-# Intel QSV, AMD AMF, and CPU x264 without requiring users to install FFmpeg.
 $FfmpegDir = Join-Path $PSScriptRoot 'ffmpeg_bin'
 $FfmpegExe = Join-Path $FfmpegDir 'ffmpeg.exe'
 $FfprobeExe = Join-Path $FfmpegDir 'ffprobe.exe'
@@ -77,6 +73,7 @@ Write-Host "Building installer application folder..." -ForegroundColor Yellow
   --add-data "ffmpeg_bin;ffmpeg_bin" `
   --distpath dist-installer `
   cammetry.py
+if ($LASTEXITCODE -ne 0) { throw 'PyInstaller installer-folder build failed.' }
 
 Write-Host "Building portable single-file EXE..." -ForegroundColor Yellow
 & $Python -m PyInstaller `
@@ -90,13 +87,14 @@ Write-Host "Building portable single-file EXE..." -ForegroundColor Yellow
   --add-data "ffmpeg_bin;ffmpeg_bin" `
   --distpath dist-portable `
   cammetry.py
+if ($LASTEXITCODE -ne 0) { throw 'PyInstaller portable build failed.' }
 
 Copy-Item "dist-portable\Cammetry-Portable.exe" "release\Cammetry-Portable-v$Version.exe"
 
 $PortableFolder = "release\Cammetry-Portable-v$Version"
 New-Item -ItemType Directory -Force $PortableFolder | Out-Null
 Copy-Item "dist-portable\Cammetry-Portable.exe" "$PortableFolder\Cammetry.exe"
-Copy-Item README.md, LICENSE, PRIVACY.md, CHANGELOG.md, FEATURE_PARITY.md, THIRD_PARTY_NOTICES.md "$PortableFolder\"
+Copy-Item README.md, LICENSE, PRIVACY.md, CHANGELOG.md, THIRD_PARTY_NOTICES.md, TRADEMARKS.md "$PortableFolder\"
 Compress-Archive -Path "$PortableFolder\*" -DestinationPath "release\Cammetry-Portable-v$Version.zip" -Force
 Remove-Item -Recurse -Force $PortableFolder
 
@@ -118,12 +116,15 @@ if (-not $MakeNsis) {
 }
 
 if (-not $MakeNsis) {
-    throw 'NSIS could not be located. Install NSIS (winget install -e --id NSIS.NSIS) and run Build-Release.ps1 again.'
+    throw 'NSIS could not be located. Install NSIS and run Build-Release.ps1 again.'
 }
 
 Write-Host "Building Windows Setup installer..." -ForegroundColor Yellow
 Push-Location "installer"
-try { & $MakeNsis "Cammetry.nsi" } finally { Pop-Location }
+try {
+    & $MakeNsis "Cammetry.nsi"
+    if ($LASTEXITCODE -ne 0) { throw 'NSIS installer build failed.' }
+} finally { Pop-Location }
 
 Write-Host ""
 Write-Host "Release build complete." -ForegroundColor Green

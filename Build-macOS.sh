@@ -18,8 +18,6 @@ mkdir -p build release
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements-build.txt
 
-# Stage imageio-ffmpeg's self-contained binary under a predictable name so
-# packaged installs do not require Homebrew or a system FFmpeg.
 FFMPEG_SRC="$(python3 -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"
 mkdir -p build/ffmpeg_bin
 cp "$FFMPEG_SRC" build/ffmpeg_bin/ffmpeg
@@ -59,27 +57,31 @@ if [[ ! -d "$APP" ]]; then
   exit 3
 fi
 
-# Ad-hoc signing gives the bundle consistent internal signatures for testing.
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep --strict "$APP"
 
-# Intel hosted runners have tighter free-disk headroom. Remove build/cache data
-# before packaging and create the DMG directly from dist so the app is not
-# duplicated into a second staging directory.
+# Remove PyInstaller intermediates before packaging to preserve runner disk space.
 rm -rf build
-python3 -m pip cache purge >/dev/null 2>&1 || true
-rm -rf "$HOME/Library/Caches/pip" 2>/dev/null || true
-
-ln -s /Applications "dist/Applications"
-DMG="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.dmg"
-hdiutil create -volname "Cammetry" -srcfolder "dist" -ov -format UDZO "$DMG" >/dev/null
-rm -f "dist/Applications"
 
 ZIP="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
-shasum -a 256 "$DMG" "$ZIP" | tee "release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.sha256.txt"
-
-echo "macOS release created:"
-echo "  $DMG"
-echo "  $ZIP"
+SHA_FILE="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.sha256.txt"
+if [[ "$RELEASE_ARCH" == "arm64" ]]; then
+  # Apple Silicon hosted runners have enough headroom for the user-friendly DMG.
+  ln -s /Applications "dist/Applications"
+  DMG="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.dmg"
+  hdiutil create -volname "Cammetry" -srcfolder "dist" -ov -format UDZO "$DMG" >/dev/null
+  rm -f "dist/Applications"
+  shasum -a 256 "$DMG" "$ZIP" | tee "$SHA_FILE"
+  echo "macOS release created:"
+  echo "  $DMG"
+  echo "  $ZIP"
+else
+  # GitHub's hosted Intel image has very limited free disk after the native app
+  # is frozen. Publish the signed app bundle as a ZIP rather than risking a
+  # failing DMG build. Users can unzip and drag Cammetry.app to Applications.
+  shasum -a 256 "$ZIP" | tee "$SHA_FILE"
+  echo "macOS Intel release created:"
+  echo "  $ZIP"
+fi
