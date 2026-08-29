@@ -45,6 +45,16 @@ For normal users, download the latest installer from the [Cammetry Releases](htt
 
 A portable executable/ZIP is also produced for users who prefer not to install the application.
 
+Cammetry v0.5.0 was the first public pre-release and predates project code-signing enrollment, so its Windows executables are unsigned. Future official Windows releases are intended to be published only after the SignPath release-signing path is active and the returned signatures have been verified.
+
+## Code signing policy
+
+**Free code signing provided by SignPath.io, certificate by SignPath Foundation.**
+
+Cammetry's Windows signing design uses GitHub-hosted build runners, SignPath origin verification, manual release approval, and Authenticode verification before signed binaries are published. Cammetry-owned executables are signed; bundled third-party open-source programs keep their own upstream identity and licenses.
+
+The project roles, release rules, privacy commitments, and current signing status are documented in [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md). Maintainer implementation details are in [docs/SIGNING.md](docs/SIGNING.md).
+
 ## Run from source — Windows
 
 The easiest source workflow is:
@@ -77,9 +87,9 @@ On Windows:
 
 or double-click `Build-Release.cmd`.
 
-The build process creates normal Windows application files, a portable executable/ZIP, and an NSIS installer. The same Windows build is automated by GitHub Actions for version tags.
+The build process creates normal Windows application files, a portable executable/ZIP, and an NSIS installer. Local builds are not automatically trusted merely because they were built from this source; official signed releases go through the controlled signing workflow described above.
 
-macOS is also an automated release target. GitHub Actions builds native Apple Silicon (`arm64`) and Intel (`x86_64`) `.app`/`.dmg` packages from the same source. Public macOS builds can be Developer ID signed/notarized once project signing credentials are configured.
+macOS is also an automated release target. GitHub Actions builds native Apple Silicon (`arm64`) and Intel (`x86_64`) packages from the same source. Public macOS builds can be Developer ID signed/notarized once project signing credentials are configured.
 
 ## Supported footage and telemetry
 
