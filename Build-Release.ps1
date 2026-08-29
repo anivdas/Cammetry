@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
-$Version = '0.5.0'
+$Version = '0.5.1'
 $Venv = Join-Path $PSScriptRoot '.build-venv'
 $Python = Join-Path $Venv 'Scripts\python.exe'
 
@@ -13,22 +13,29 @@ Write-Host ""
 if (-not (Test-Path $Python)) {
     $launcher = Get-Command py -ErrorAction SilentlyContinue
     if ($launcher) {
-        try { & py -3.12 -m venv $Venv }
-        catch { & py -3 -m venv $Venv }
+        & py -3.12 -m venv $Venv
+        if ($LASTEXITCODE -ne 0) {
+            & py -3 -m venv $Venv
+            if ($LASTEXITCODE -ne 0) { throw 'Python could not create the build environment.' }
+        }
     } else {
         $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
         if (-not $pythonCmd) { throw 'Python 3 was not found. Install Python 3.12 or newer and run this again.' }
         & python -m venv $Venv
+        if ($LASTEXITCODE -ne 0) { throw 'Python could not create the build environment.' }
     }
 }
 
 & $Python -m pip install --upgrade pip
+if ($LASTEXITCODE -ne 0) { throw 'pip upgrade failed.' }
 & $Python -m pip install -r requirements-build.txt
+if ($LASTEXITCODE -ne 0) { throw 'Build dependency installation failed.' }
 
 $IconPng = Join-Path $PSScriptRoot 'assets\app.png'
 $IconIco = Join-Path $PSScriptRoot 'assets\app.ico'
 if (-not (Test-Path $IconIco)) {
     & $Python -c "from PIL import Image; Image.open(r'$IconPng').convert('RGBA').save(r'$IconIco', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+    if ($LASTEXITCODE -ne 0) { throw 'Could not generate the Windows icon.' }
 }
 
 $FfmpegDir = Join-Path $PSScriptRoot 'ffmpeg_bin'
@@ -36,6 +43,9 @@ $FfmpegExe = Join-Path $FfmpegDir 'ffmpeg.exe'
 $FfprobeExe = Join-Path $FfmpegDir 'ffprobe.exe'
 if (-not (Test-Path $FfmpegExe) -or -not (Test-Path $FfprobeExe)) {
     Write-Host "Downloading full Windows FFmpeg runtime..." -ForegroundColor Yellow
+    # The export engine runtime-tests each hardware encoder before it is offered
+    # and automatically falls back to CPU x264 if the user's driver cannot
+    # initialize the bundled FFmpeg/NVENC/QSV/AMF implementation.
     $FfmpegUrl = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
     $FfmpegZip = Join-Path $env:TEMP 'Cammetry-ffmpeg.zip'
     $FfmpegExtract = Join-Path $env:TEMP 'Cammetry-ffmpeg'
@@ -52,6 +62,7 @@ if (-not (Test-Path $FfmpegExe) -or -not (Test-Path $FfprobeExe)) {
     Set-Content -Path (Join-Path $FfmpegDir 'SOURCE.txt') -Encoding UTF8 -Value @(
         'FFmpeg Windows binaries from BtbN/FFmpeg-Builds',
         $FfmpegUrl,
+        'Cammetry runtime-tests hardware encoders and falls back to CPU encoding when needed.',
         'FFmpeg is distributed under its own license. See THIRD_PARTY_NOTICES.md.'
     )
     Remove-Item -Recurse -Force $FfmpegExtract -ErrorAction SilentlyContinue
@@ -110,6 +121,7 @@ if (-not $MakeNsis) {
     if ($winget) {
         Write-Host "NSIS not found. Installing the open-source NSIS compiler with winget..." -ForegroundColor Yellow
         & winget install --id NSIS.NSIS -e --source winget --silent --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -ne 0) { throw 'winget could not install NSIS.' }
         $MakeNsis = @(
             "$env:ProgramFiles\NSIS\makensis.exe",
             "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
