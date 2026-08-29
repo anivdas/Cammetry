@@ -2,6 +2,8 @@ name: Build Unsigned Windows Test Artifacts
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ v0.5.1-beta ]
 
 permissions:
   contents: read
@@ -37,12 +39,12 @@ jobs:
       - name: Upload unsigned test artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Cammetry-Windows-UNSIGNED-TEST-ONLY
+          name: Cammetry-Windows-v0.5.1-UNSIGNED-BETA
           path: release/*
 
       - name: Signing notice
         shell: pwsh
         run: |
-          Write-Host 'These artifacts are intentionally unsigned test builds.'
+          Write-Host 'These artifacts are intentionally unsigned v0.5.1 beta test builds.'
           Write-Host 'Do not attach them to an official GitHub Release.'
           Write-Host 'Official Windows release tags use windows-signpath-release.yml after SignPath enrollment.'
