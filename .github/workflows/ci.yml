@@ -29,6 +29,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
       - name: Compile source
-        run: python -m py_compile cammetry.py tts_core.py tts_export.py tts_export_v051.py tts_hud.py tts_locales.py tts_map.py tts_map_export.py tts_player.py tts_settings.py tts_ui.py tts_modern_ui.py tts_release_ui.py tts_final_ui.py tts_next_ui.py tts_updater.py tts_ui_polish.py
+        run: python -m py_compile cammetry.py tts_core.py tts_export.py tts_export_v051.py tts_hud.py tts_locales.py tts_map.py tts_map_export.py tts_player.py tts_settings.py tts_ui.py tts_modern_ui.py tts_release_ui.py tts_final_ui.py tts_next_ui.py tts_beta_ui.py tts_updater.py tts_ui_polish.py
       - name: Run unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
