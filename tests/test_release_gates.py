@@ -32,10 +32,10 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn("Cammetry-Portable-ZIP-v0.5.1-UNSIGNED-BETA", text)
         self.assertNotIn("name: Cammetry-Windows-v0.5.1-UNSIGNED-BETA", text)
 
-    def test_release_entrypoint_uses_final_ui_layer(self):
+    def test_release_entrypoint_uses_latest_beta_ui_layer(self):
         text = (ROOT / "cammetry.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "0.5.1"', text)
-        self.assertIn("from tts_final_ui import App", text)
+        self.assertIn("from tts_next_ui import App", text)
 
     def test_event_browser_tree_and_scrollbar_share_the_same_parent(self):
         text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
@@ -60,19 +60,42 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertNotIn("s=64x64", text)
         self.assertIn("tts_export_v051._encoder_smoke_test = robust_encoder_smoke_test", text)
 
-    def test_export_progress_is_integrated_not_a_floating_toast(self):
-        text = (ROOT / "tts_ui_polish.py").read_text(encoding="utf-8")
-        self.assertIn("def build_inline_status", text)
-        self.assertIn('flat_button(self._export_inline, "Open file"', text)
-        self.assertIn('flat_button(self._export_inline, "Show in folder"', text)
-        self.assertIn("tts_ui.App._show_export_toast = show_export_inline", text)
-        self.assertIn("tts_ui.App._poll_worker = inline_poll_worker", text)
+    def test_export_progress_is_integrated_in_main_window(self):
+        text = (ROOT / "tts_next_ui.py").read_text(encoding="utf-8")
+        self.assertIn("self.export_inline", text)
+        self.assertIn('"Open file"', text)
+        self.assertIn('"Show in folder"', text)
+        self.assertIn('"Diagnostics"', text)
+        self.assertIn("def _poll_worker", text)
         self.assertNotIn("messagebox.showinfo", text)
         self.assertNotIn("messagebox.showerror", text)
 
-    def test_ci_compiles_ui_polish_module(self):
+    def test_hud_uses_fixed_positions_and_nonoverlapping_intervals(self):
+        text = (ROOT / "tts_hud.py").read_text(encoding="utf-8")
+        self.assertIn("\\\\pos(", text)
+        self.assertIn("Do not overlap adjacent events", text)
+        self.assertNotIn("+ 0.015", text)
+        self.assertIn("_gear_name", text)
+        self.assertIn("BLUE if assist_active", text)
+
+    def test_export_map_modes_include_off_streets_and_satellite(self):
+        text = (ROOT / "tts_map_export.py").read_text(encoding="utf-8")
+        self.assertIn('MAP_STYLES = ("Off", "Route only", "Street map", "Satellite")', text)
+        self.assertIn("build_osm_mosaic", text)
+        self.assertIn("satellite-v4", text)
+        self.assertIn("© MapTiler", text)
+
+    def test_encrypted_clips_are_not_treated_as_playable(self):
+        text = (ROOT / "tts_next_ui.py").read_text(encoding="utf-8")
+        self.assertIn('"encryptedclips" not in', text)
+        self.assertIn("Decrypt with Tesla", text)
+        self.assertIn("https://dashcam.tesla.com", text)
+        self.assertIn("does not request or store", text)
+
+    def test_ci_compiles_all_beta_layers(self):
         text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        self.assertIn("tts_ui_polish.py", text)
+        for module in ("tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py"):
+            self.assertIn(module, text)
 
 
 if __name__ == "__main__":
