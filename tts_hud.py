@@ -64,7 +64,7 @@ def _panel(start: str, end: str, x1: int, y1: int, x2: int, y2: int, opacity: in
     path = f"m {x1} {y1} l {x2} {y1} l {x2} {y2} l {x1} {y2}"
     tags = (
         "{\\an7\\pos(0,0)\\p1"
-        f"\\1c{DARK}\\1a&H{fill_alpha}&\\3c{BORDER}\\3a&H20&\\bord2\\shad0}"
+        f"\\1c{DARK}\\1a&H{fill_alpha}&\\3c{BORDER}\\3a&H20&\\bord2\\shad0" + "}"
     )
     return _raw_dialogue(start, end, "HUD", tags + path + "{\\p0}", layer=1)
 
