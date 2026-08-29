@@ -26,7 +26,7 @@ def main() -> int:
     # every module imported afterward (UI/update checks/About) sees 0.5.1.
     import tts_core
     tts_core.APP_VERSION = APP_VERSION
-    from tts_final_ui import App
+    from tts_next_ui import App
     app = App()
     app.mainloop()
     return 0
