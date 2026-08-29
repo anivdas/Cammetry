@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — 0.5.1
+
+Windows beta polish based on testing the public v0.5.0 installer against a real TeslaCam folder.
+
+- Changed the main action to **Browse TeslaCam…** and made the folder picker start from the current path, a detected TeslaCam drive, or the user's Videos folder.
+- Automatically selects the newest visible recording after a successful scan.
+- Automatically chooses Single, Four Camera, or Six Camera preview based on the cameras actually present in the selected recording.
+- Removed the `Unofficial` suffix from official Cammetry window titles.
+- Fixed misleading pre-selection telemetry and route states; empty values now remain neutral until a recording is loaded.
+- Clears stale telemetry, route, insights, and event details immediately when switching recordings.
+- Bundles the Cammetry icon as a runtime asset so packaged Windows builds can use it in the application title bar.
+- Changed the Windows installer target to `Program Files\Cammetry` with a conventional per-machine UAC installation and system-wide Start Menu registration.
+- Added SignPath Foundation code-signing policy and a fail-closed signed Windows release workflow for use after project enrollment is approved.
+
 ## 0.5.0
 
 Localization and cross-platform feature release.
