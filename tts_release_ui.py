@@ -14,7 +14,7 @@ from tkinter import ttk
 from tts_core import APP_NAME, APP_VERSION, ClipGroup, get_ffmpeg_exe
 from tts_export_v051 import encoder_status
 from tts_modern_ui import CalendarPicker, ModernApp
-from tts_ui import BG, PANEL, TEXT, flat_button
+from tts_ui import BG, CARD2, DANGER, GOOD, PANEL, TEXT, flat_button
 
 
 _DATE_FORMATS = {
@@ -34,8 +34,6 @@ class ReleaseCalendarPicker(CalendarPicker):
         self._add_yesterday_button()
 
     def _add_yesterday_button(self) -> None:
-        # CalendarPicker intentionally keeps its quick-range row private. Find
-        # the row containing Today so this small release layer stays isolated.
         for child in self.winfo_children():
             if not isinstance(child, tk.Frame) or child is self.grid_frame:
                 continue
@@ -71,8 +69,12 @@ class ReleaseApp(ModernApp):
         self._preview_render_count = 0
         self._preview_skip_resize = 0
         self._preview_skip_hidden = 0
+        self._preview_duplicate_skips = 0
         self._preview_metric_started = time.perf_counter()
+        self._last_render_signature = None
         self._clip_action_buttons: list[tk.Widget] = []
+        self._start_marker_button = None
+        self._end_marker_button = None
         super().__init__()
         self._stabilize_camera_tiles()
         self._capture_clip_action_buttons()
@@ -93,8 +95,6 @@ class ReleaseApp(ModernApp):
         ReleaseCalendarPicker(self, self.groups, self._set_date_filter)
 
     def refresh_event_list(self):
-        # Preserve the selected recording when it remains visible after a type,
-        # date, or search filter change.
         selected = getattr(self, "selected_group", None)
         selected_key = None
         if selected is not None:
@@ -129,6 +129,10 @@ class ReleaseApp(ModernApp):
                     is_seek = (label.startswith("-") or label.startswith("+")) and label.endswith("s")
                     if label in target_labels or is_seek:
                         self._clip_action_buttons.append(widget)
+                    if label == "Start":
+                        self._start_marker_button = widget
+                    elif label == "End":
+                        self._end_marker_button = widget
                 except Exception:
                     pass
 
@@ -140,11 +144,72 @@ class ReleaseApp(ModernApp):
             except Exception:
                 pass
 
+    def _set_marker_visuals(self, start_active: bool, end_active: bool) -> None:
+        if self._start_marker_button is not None:
+            try:
+                self._start_marker_button.configure(bg=GOOD if start_active else CARD2)
+            except Exception:
+                pass
+        if self._end_marker_button is not None:
+            try:
+                self._end_marker_button.configure(bg=DANGER if end_active else CARD2)
+            except Exception:
+                pass
+
+    def set_in(self):
+        super().set_in()
+        if getattr(self, "selected_group", None):
+            self._set_marker_visuals(True, self.out_point < self.video_duration - 1e-3)
+
+    def set_out(self):
+        super().set_out()
+        if getattr(self, "selected_group", None):
+            self._set_marker_visuals(self.in_point > 1e-3, True)
+
+    def clear_trim(self):
+        super().clear_trim()
+        self._set_marker_visuals(False, False)
+
     def load_group(self, group: ClipGroup):
+        self._last_render_signature = None
         super().load_group(group)
+        self._set_marker_visuals(False, False)
         self._set_clip_action_state(
             bool(getattr(self, "selected_group", None) is group and getattr(self, "video_duration", 0.0) > 0.0)
         )
+
+    def _render_signature(self, pos) -> tuple:
+        try:
+            position = self.player.position if pos is None else float(pos)
+        except Exception:
+            position = 0.0
+        tile_geometry = []
+        for camera, tile in getattr(self, "tiles", {}).items():
+            try:
+                if tile.winfo_ismapped():
+                    tile_geometry.append((camera, tile.image.winfo_width(), tile.image.winfo_height()))
+            except Exception:
+                pass
+        return (
+            round(position, 3),
+            str(self._effective_layout()) if getattr(self, "selected_group", None) else "none",
+            str(self.viewport_mode.get()) if hasattr(self, "viewport_mode") else "Fit",
+            round(float(self.zoom_var.get()), 2) if hasattr(self, "zoom_var") else 1.0,
+            round(float(self.exposure_var.get()), 2) if hasattr(self, "exposure_var") else 0.0,
+            round(float(self.contrast_var.get()), 2) if hasattr(self, "contrast_var") else 1.0,
+            round(float(self.saturation_var.get()), 2) if hasattr(self, "saturation_var") else 1.0,
+            round(float(self.gamma_var.get()), 2) if hasattr(self, "gamma_var") else 1.0,
+            tuple(tile_geometry),
+        )
+
+    def _refresh_frames(self, pos=None):
+        if getattr(self, "selected_group", None):
+            signature = self._render_signature(pos)
+            if signature == self._last_render_signature:
+                self._preview_duplicate_skips += 1
+                return
+            self._last_render_signature = signature
+        return super()._refresh_frames(pos)
 
     def _tick(self):
         playing = bool(getattr(getattr(self, "player", None), "playing", False))
@@ -191,7 +256,7 @@ class ReleaseApp(ModernApp):
     def open_diagnostics(self):
         dialog = tk.Toplevel(self)
         dialog.title("Cammetry diagnostics")
-        dialog.geometry("720x560")
+        dialog.geometry("720x580")
         dialog.configure(bg=BG)
         dialog.transient(self)
 
@@ -231,6 +296,7 @@ class ReleaseApp(ModernApp):
             "Preview/UI metrics:",
             f"  rendered preview updates: {self._preview_render_count}",
             f"  average rendered preview FPS since launch: {avg_preview_fps:.1f}",
+            f"  duplicate preview refreshes avoided: {self._preview_duplicate_skips}",
             f"  render ticks skipped while resizing: {self._preview_skip_resize}",
             f"  render ticks skipped while minimized/hidden: {self._preview_skip_hidden}",
             "",
