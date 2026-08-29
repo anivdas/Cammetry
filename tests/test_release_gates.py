@@ -35,7 +35,7 @@ class ReleaseGateTests(unittest.TestCase):
     def test_release_entrypoint_uses_latest_beta_ui_layer(self):
         text = (ROOT / "cammetry.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "0.5.1"', text)
-        self.assertIn("from tts_next_ui import App", text)
+        self.assertIn("from tts_beta_ui import App", text)
 
     def test_event_browser_tree_and_scrollbar_share_the_same_parent(self):
         text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
@@ -48,11 +48,15 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn("upgrade_native_checkbuttons(export_dialog)", text)
         self.assertIn("Apply image adjustments to exported video", text)
 
-    def test_final_ui_replaces_classic_more_menu(self):
-        text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
-        self.assertIn('flat_button(parent, "Settings", self.open_settings)', text)
-        self.assertIn('flat_button(parent, "Tools", self.show_tools_panel)', text)
-        self.assertNotIn("tk.Menu(", text)
+    def test_tools_and_vehicle_view_are_in_app_single_instance_overlays(self):
+        text = (ROOT / "tts_beta_ui.py").read_text(encoding="utf-8")
+        self.assertIn("self._tools_overlay", text)
+        self.assertIn("self._vehicle_overlay", text)
+        self.assertIn('panel = tk.Frame(', text)
+        self.assertNotIn('panel = tk.Toplevel(', text)
+        self.assertIn('panel.tkraise()', text)
+        self.assertIn('Recording profile:', text)
+        self.assertIn('pseudo-isometric EV silhouette', text)
 
     def test_hardware_encoder_probe_uses_normal_video_dimensions(self):
         text = (ROOT / "tts_ui_polish.py").read_text(encoding="utf-8")
@@ -94,7 +98,7 @@ class ReleaseGateTests(unittest.TestCase):
 
     def test_ci_compiles_all_beta_layers(self):
         text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        for module in ("tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py"):
+        for module in ("tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py", "tts_beta_ui.py"):
             self.assertIn(module, text)
 
 
