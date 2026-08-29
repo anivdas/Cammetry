@@ -1,19 +1,53 @@
 # Changelog
 
-## Unreleased — 0.5.1
+## 0.5.1 Beta
 
-Windows beta polish based on testing the public v0.5.0 installer against a real TeslaCam folder.
+Consolidated Windows beta based on hands-on testing of v0.5.0 against a real TeslaCam library.
 
+### Viewer and navigation
 - Changed the main action to **Browse TeslaCam…** and made the folder picker start from the current path, a detected TeslaCam drive, or the user's Videos folder.
 - Automatically selects the newest visible recording after a successful scan.
-- Added an always-visible dark vertical scrollbar to the Events list so long TeslaCam histories show position and remaining scroll range while preserving mouse-wheel scrolling.
-- Automatically chooses Single, Four Camera, or Six Camera preview based on the cameras actually present in the selected recording.
+- Added an always-visible dark vertical scrollbar to the Events list while preserving mouse-wheel scrolling.
+- Added independent calendar/date filtering with per-day clip counts, Today, Last 7 Days, Last 30 Days, All Dates, single-day selection, and custom date ranges.
+- Added an adaptive **Auto (N cameras)** layout driven by the streams actually present in each recording rather than assuming a vehicle hardware generation.
+- Added an original **Vehicle View / Camera Map** with clickable recorded camera positions and a return-to-Auto action.
+- Added Fit/Fill viewport modes and zoom controls.
+- Added live non-destructive exposure, contrast, saturation, and gamma adjustments.
+
+### Playback and trim UX
+- Reworked the center-bottom controls into a cohesive media transport/trim surface with timecode, playback speed, skip, Play/Pause, a wide telemetry timeline, Start/End trim markers, Export, Publish, Snapshot, and an overflow menu.
+- Timeline playback now moves only the playhead instead of rebuilding the entire telemetry visualization every frame.
+- Video rendering is suspended while minimized and throttled/debounced while resizing to improve minimize/maximize and window-resize responsiveness.
+- Route and telemetry redraw rates are reduced independently from video refresh.
+- Only camera tiles visible in the active layout are rendered.
+
+### Export and telemetry HUD
+- Fixed malformed ASS subtitle rows that caused the telemetry HUD text to disappear while the minimap still rendered.
+- Added an original Cammetry telemetry HUD with Full, Compact, and Minimal styles plus size, opacity, and top/bottom placement controls.
+- Added independent export toggles for speed, driver-assist state, gear, steering, accelerator, brake, blinkers, G-force, timestamp, GPS coordinates, and GPS minimap.
+- Single-camera exports now support **Preserve Source**, **Fit 16:9**, and **Fill 16:9** framing; Preserve Source avoids unnecessary black side bars.
+- Current exposure/contrast/saturation/gamma adjustments can be applied to exports.
+- Hardware encoders are now validated with a tiny real encode before they are offered.
+- **Auto** selects a working encoder; hardware failures automatically retry using CPU x264 instead of forcing users onto one specific GPU-driver version.
+- Export errors are shorter and more actionable while Diagnostics retains the useful environment/encoder information.
+
+### Help, publishing, and privacy
+- Replaced the meaningless empty support-chat experience with **Help & About**, quick-start instructions, shortcuts, documentation/issues links, update checking, and privacy-safe diagnostics.
+- Reworked Share into **Publish / Share**. The initial beta provides YouTube/Vimeo/TikTok upload-page handoff, Reveal File, Copy Path, and the optional existing temporary-link backend when configured. Direct OAuth publishing can be layered in later without blocking the local workflow.
+- Publish shows a privacy reminder for GPS/minimap, timestamps, faces, and license plates.
+- Diagnostics intentionally avoids exposing GPS coordinates.
+
+### Windows installation and polish
 - Removed the `Unofficial` suffix from official Cammetry window titles.
-- Fixed misleading pre-selection telemetry and route states; empty values now remain neutral until a recording is loaded.
-- Clears stale telemetry, route, insights, and event details immediately when switching recordings.
-- Bundles the Cammetry icon as a runtime asset so packaged Windows builds can use it in the application title bar.
-- Changed the Windows installer target to `Program Files\Cammetry` with a conventional per-machine UAC installation and system-wide Start Menu registration.
+- Fixed misleading pre-selection telemetry and route states and clears stale state when switching recordings.
+- Bundles the Cammetry icon as a runtime asset for the Windows title bar.
+- Windows Setup defaults to `Program Files\Cammetry` with conventional per-machine UAC installation and system-wide Start Menu registration.
+- Setup and Uninstall now detect a running Cammetry instance, ask to close it, close/terminate any remaining process if necessary, and only then replace/remove the install tree. This prevents partial uninstalls caused by locked application files.
 - Added SignPath Foundation code-signing policy and a fail-closed signed Windows release workflow for use after project enrollment is approved.
+
+### Notes
+- Cammetry remains free and open source, local-first by default, and unaffiliated with or endorsed by Tesla, Inc.
+- The existing 13-language translation system remains intact. Newly introduced beta-only advanced controls may receive additional translation polish before a later stable release.
 
 ## 0.5.0
 
@@ -52,7 +86,7 @@ The application capabilities inherited from the 0.3 development build include:
 Major desktop-viewer redesign.
 
 - Replaced the original utility-style UI with a dark three-pane event viewer inspired by modern TeslaCam desktop tools.
-- Added synchronized six-camera preview support including HW4 left/right pillar cameras.
+- Added synchronized six-camera preview support including left/right pillar camera streams when present.
 - Added Six Camera, Four Camera, and Single Camera layouts.
 - Added integrated transport controls, 0.5x–4x playback, seek controls, and configurable keyboard shortcuts.
 - Added telemetry dashboard with live speed, gear, driver-assist state, steering, accelerator, and brake state.
