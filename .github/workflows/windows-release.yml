@@ -1,4 +1,4 @@
-name: Build Unsigned Windows Test Artifacts
+name: Build and Publish Unsigned Windows Beta
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [ v0.5.1-beta ]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: cammetry-windows-beta-${{ github.ref }}
@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: choco install nsis --no-progress -y
 
-      - name: Build unsigned Windows test artifacts
+      - name: Build unsigned Windows beta artifacts
         shell: pwsh
         run: .\Build-Release.ps1
 
@@ -49,9 +49,6 @@ jobs:
           Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
 
           Write-Host "Installing beta silently to $SmokeDir"
-          # NSIS Setup/Uninstall are GUI-subsystem executables; invoking them with
-          # '&' does not reliably populate PowerShell's $LASTEXITCODE. Wait for
-          # the actual process and inspect its ExitCode instead.
           $InstallProcess = Start-Process -FilePath $Setup -ArgumentList @('/S', "/D=$SmokeDir") -Wait -PassThru
           if ($InstallProcess.ExitCode -ne 0) { throw "Setup smoke install failed with exit code $($InstallProcess.ExitCode)" }
 
@@ -80,30 +77,67 @@ jobs:
           }
           Write-Host 'Setup/install/launch/uninstall smoke test passed.' -ForegroundColor Green
 
-      - name: Upload Setup installer
+      - name: Upload Setup installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: Cammetry-Setup-v0.5.1-UNSIGNED-BETA
           path: release/Cammetry-Setup-v0.5.1.exe
           if-no-files-found: error
 
-      - name: Upload portable EXE
+      - name: Upload portable EXE artifact
         uses: actions/upload-artifact@v4
         with:
           name: Cammetry-Portable-EXE-v0.5.1-UNSIGNED-BETA
           path: release/Cammetry-Portable-v0.5.1.exe
           if-no-files-found: error
 
-      - name: Upload portable ZIP
+      - name: Upload portable ZIP artifact
         uses: actions/upload-artifact@v4
         with:
           name: Cammetry-Portable-ZIP-v0.5.1-UNSIGNED-BETA
           path: release/Cammetry-Portable-v0.5.1.zip
           if-no-files-found: error
 
+      - name: Publish unsigned beta to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.5.1-beta
+          target_commitish: ${{ github.sha }}
+          name: Cammetry v0.5.1 Beta - Unsigned Test Build
+          prerelease: true
+          make_latest: false
+          body: |
+            ## Cammetry v0.5.1 Beta
+
+            This is a public **unsigned test build** published while Cammetry's SignPath code-signing certification is pending.
+
+            ### What's ready for testing
+            - NVIDIA NVENC accelerated export support
+            - Updated HUD and telemetry presentation
+            - Refined playback and transport controls
+            - Map overlay sizing and placement controls
+            - Multi-camera TeslaCam viewing and export workflow improvements
+            - Installer, portable EXE, and portable ZIP options
+
+            ### Windows download options
+            - **Cammetry-Setup-v0.5.1.exe** - normal Windows installer
+            - **Cammetry-Portable-v0.5.1.exe** - single-file portable build
+            - **Cammetry-Portable-v0.5.1.zip** - portable ZIP package
+
+            ### Important: unsigned build
+            Windows SmartScreen may warn because this beta has **not yet been code-signed**. SignPath certification is in progress. A signed release will replace this test build once certification is complete.
+
+            Please report reproducible issues through GitHub Issues and include your Windows version, GPU, and whether NVENC was enabled when relevant.
+
+            Cammetry is free and open source, local-first, and privacy-focused. It is an independent project and is not affiliated with or endorsed by Tesla, Inc.
+          files: |
+            release/Cammetry-Setup-v0.5.1.exe
+            release/Cammetry-Portable-v0.5.1.exe
+            release/Cammetry-Portable-v0.5.1.zip
+          fail_on_unmatched_files: true
+
       - name: Signing notice
         shell: pwsh
         run: |
-          Write-Host 'These artifacts are intentionally unsigned v0.5.1 beta test builds.'
-          Write-Host 'Do not attach them to an official GitHub Release.'
-          Write-Host 'Official Windows release tags use windows-signpath-release.yml after SignPath enrollment.'
+          Write-Host 'Published v0.5.1-beta as an intentionally unsigned public test release.'
+          Write-Host 'The signed production release remains gated on SignPath certification.'
