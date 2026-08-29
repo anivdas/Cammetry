@@ -20,7 +20,7 @@ def enable_windows_dpi_awareness() -> None:
 
 def main() -> int:
     enable_windows_dpi_awareness()
-    from tts_ui import App
+    from tts_modern_ui import App
     app = App()
     app.mainloop()
     return 0
