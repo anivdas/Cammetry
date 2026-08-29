@@ -14,7 +14,7 @@ from tkinter import ttk
 from tts_core import APP_NAME, APP_VERSION, ClipGroup, get_ffmpeg_exe
 from tts_export_v051 import encoder_status
 from tts_modern_ui import CalendarPicker, ModernApp
-from tts_ui import ACCENT, BG, BORDER, CARD2, MUTED, PANEL, TEXT, flat_button
+from tts_ui import BG, PANEL, TEXT, flat_button
 
 
 _DATE_FORMATS = {
@@ -74,8 +74,20 @@ class ReleaseApp(ModernApp):
         self._preview_metric_started = time.perf_counter()
         self._clip_action_buttons: list[tk.Widget] = []
         super().__init__()
+        self._stabilize_camera_tiles()
         self._capture_clip_action_buttons()
         self._set_clip_action_state(bool(getattr(self, "selected_group", None)))
+
+    def _stabilize_camera_tiles(self) -> None:
+        # Tk Labels normally request the full PhotoImage size. During a live
+        # window shrink that old requested size can temporarily push the fixed
+        # transport/timeline out of view. Let the grid own tile geometry instead.
+        for tile in getattr(self, "tiles", {}).values():
+            try:
+                tile.pack_propagate(False)
+                tile.image.configure(width=1, height=1)
+            except Exception:
+                pass
 
     def open_calendar(self):
         ReleaseCalendarPicker(self, self.groups, self._set_date_filter)
@@ -105,12 +117,17 @@ class ReleaseApp(ModernApp):
             yield from self._walk_widgets(child)
 
     def _capture_clip_action_buttons(self) -> None:
-        target_labels = {"Start", "End", "Clear", "Export", "Publish", str(self.t("snapshot"))}
+        target_labels = {
+            "Play", "Vehicle View", "Start", "End", "Clear", "Export", "Publish",
+            str(self.t("snapshot")),
+        }
         self._clip_action_buttons = []
         for widget in self._walk_widgets(self):
             if isinstance(widget, (tk.Button, ttk.Button)):
                 try:
-                    if str(widget.cget("text")) in target_labels:
+                    label = str(widget.cget("text"))
+                    is_seek = (label.startswith("-") or label.startswith("+")) and label.endswith("s")
+                    if label in target_labels or is_seek:
                         self._clip_action_buttons.append(widget)
                 except Exception:
                     pass
@@ -125,7 +142,9 @@ class ReleaseApp(ModernApp):
 
     def load_group(self, group: ClipGroup):
         super().load_group(group)
-        self._set_clip_action_state(True)
+        self._set_clip_action_state(
+            bool(getattr(self, "selected_group", None) is group and getattr(self, "video_duration", 0.0) > 0.0)
+        )
 
     def _tick(self):
         playing = bool(getattr(getattr(self, "player", None), "playing", False))
