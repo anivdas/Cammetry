@@ -58,16 +58,19 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn('Recording profile:', text)
         self.assertIn('pseudo-isometric EV silhouette', text)
 
-    def test_transport_uses_media_style_seek_controls_and_subtle_button_states(self):
+    def test_transport_is_actually_wired_into_active_hotfix_layer(self):
         transport = (ROOT / "tts_transport_polish.py").read_text(encoding="utf-8")
-        beta = (ROOT / "tts_beta_ui.py").read_text(encoding="utf-8")
+        live = (ROOT / "tts_transport_live.py").read_text(encoding="utf-8")
+        hotfix = (ROOT / "tts_hotfix_ui.py").read_text(encoding="utf-8")
         self.assertIn("class TransportSeekButton", transport)
         self.assertIn("Curved seek glyph", transport)
         self.assertIn("0.025", transport)
         self.assertIn("<ButtonRelease-1>", transport)
-        self.assertIn("TransportSeekButton(", beta)
-        self.assertNotIn('flat_button(row, f"-{seek}s"', beta)
-        self.assertNotIn('flat_button(row, f"+{seek}s"', beta)
+        self.assertIn("class PlaybackSpeedButton", live)
+        self.assertIn('f"Speed  {_format_speed', live)
+        self.assertIn("SPEEDS = (0.5, 1.0, 2.0, 4.0)", live)
+        self.assertIn("modernize_transport_row(self)", hotfix)
+        self.assertIn("install_button_interaction_polish()", hotfix)
 
     def test_hardware_encoder_probe_uses_normal_video_dimensions(self):
         text = (ROOT / "tts_ui_polish.py").read_text(encoding="utf-8")
@@ -111,6 +114,15 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn("satellite-v4", text)
         self.assertIn("© MapTiler", text)
 
+    def test_export_map_size_and_position_controls_are_wired(self):
+        layout = (ROOT / "tts_export_layout_polish.py").read_text(encoding="utf-8")
+        ui = (ROOT / "tts_hotfix_ui.py").read_text(encoding="utf-8")
+        self.assertIn('MAP_SIZES = ("Small", "Medium", "Large")', layout)
+        self.assertIn('MAP_POSITIONS = ("Top right", "Top left", "Bottom right", "Bottom left")', layout)
+        self.assertIn('"Map size"', ui)
+        self.assertIn('"Map position"', ui)
+        self.assertIn("configure_map_layout(size, position)", ui)
+
     def test_encrypted_clips_are_not_treated_as_playable(self):
         text = (ROOT / "tts_next_ui.py").read_text(encoding="utf-8")
         self.assertIn('"encryptedclips" not in', text)
@@ -123,6 +135,7 @@ class ReleaseGateTests(unittest.TestCase):
         for module in (
             "tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py",
             "tts_beta_ui.py", "tts_export_guard.py", "tts_hotfix_ui.py", "tts_transport_polish.py",
+            "tts_transport_live.py", "tts_export_layout_polish.py",
         ):
             self.assertIn(module, text)
 
