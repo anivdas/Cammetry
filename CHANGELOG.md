@@ -6,6 +6,7 @@ Windows beta polish based on testing the public v0.5.0 installer against a real 
 
 - Changed the main action to **Browse TeslaCam…** and made the folder picker start from the current path, a detected TeslaCam drive, or the user's Videos folder.
 - Automatically selects the newest visible recording after a successful scan.
+- Added an always-visible dark vertical scrollbar to the Events list so long TeslaCam histories show position and remaining scroll range while preserving mouse-wheel scrolling.
 - Automatically chooses Single, Four Camera, or Six Camera preview based on the cameras actually present in the selected recording.
 - Removed the `Unofficial` suffix from official Cammetry window titles.
 - Fixed misleading pre-selection telemetry and route states; empty values now remain neutral until a recording is loaded.
