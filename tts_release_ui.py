@@ -4,6 +4,7 @@ import os
 import platform
 import shutil
 import subprocess
+import threading
 import time
 from datetime import date, timedelta
 from typing import Optional, Sequence
@@ -12,7 +13,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from tts_core import APP_NAME, APP_VERSION, ClipGroup, get_ffmpeg_exe
-from tts_export_v051 import encoder_status
+from tts_export_v051 import encoder_status, export_video
 from tts_modern_ui import CalendarPicker, ModernApp
 from tts_ui import BG, CARD2, DANGER, GOOD, PANEL, TEXT, flat_button
 
@@ -72,6 +73,7 @@ class ReleaseApp(ModernApp):
         self._preview_duplicate_skips = 0
         self._preview_metric_started = time.perf_counter()
         self._last_render_signature = None
+        self._last_export_diagnostics = ""
         self._clip_action_buttons: list[tk.Widget] = []
         self._start_marker_button = None
         self._end_marker_button = None
@@ -211,6 +213,38 @@ class ReleaseApp(ModernApp):
             self._last_render_signature = signature
         return super()._refresh_frames(pos)
 
+    def start_export(self, dest, options):
+        group = self.selected_group
+        samples = list(self.samples)
+        fps = self.telemetry_fps
+        if not group:
+            return
+        self._last_export_diagnostics = ""
+        self.progress["value"] = 1
+        self.status_var.set("Preparing export...")
+        self._show_export_toast()
+
+        def work():
+            try:
+                encoder = export_video(
+                    group,
+                    samples,
+                    fps,
+                    dest,
+                    options,
+                    lambda p, m: self._worker_q.put(("export_progress", (p, m))),
+                )
+                self._worker_q.put(("export_done", (dest, encoder)))
+            except Exception as exc:
+                raw = str(exc).strip()
+                short, separator, details = raw.partition("\n\n")
+                if not short:
+                    short = "Cammetry could not export this clip. Open Help > Diagnostics for technical details."
+                self._last_export_diagnostics = details.strip() if separator else f"{type(exc).__name__}: {raw}"
+                self._worker_q.put(("export_error", short))
+
+        threading.Thread(target=work, daemon=True).start()
+
     def _tick(self):
         playing = bool(getattr(getattr(self, "player", None), "playing", False))
         visible = False
@@ -256,7 +290,7 @@ class ReleaseApp(ModernApp):
     def open_diagnostics(self):
         dialog = tk.Toplevel(self)
         dialog.title("Cammetry diagnostics")
-        dialog.geometry("720x580")
+        dialog.geometry("720x620")
         dialog.configure(bg=BG)
         dialog.transient(self)
 
@@ -303,6 +337,14 @@ class ReleaseApp(ModernApp):
             f"Selected recording: {self.selected_group.timestamp if self.selected_group else 'none'}",
             f"Camera streams: {len(self.selected_group.cameras) if self.selected_group else 0}",
             f"Telemetry samples: {len(self.samples)}",
+        ])
+        if self._last_export_diagnostics:
+            lines.extend([
+                "",
+                "Last export failure diagnostics:",
+                self._last_export_diagnostics[-4000:],
+            ])
+        lines.extend([
             "",
             "Diagnostics intentionally omit GPS coordinates and video contents.",
         ])
