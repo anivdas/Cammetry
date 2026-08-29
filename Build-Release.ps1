@@ -41,33 +41,48 @@ if (-not (Test-Path $IconIco)) {
 $FfmpegDir = Join-Path $PSScriptRoot 'ffmpeg_bin'
 $FfmpegExe = Join-Path $FfmpegDir 'ffmpeg.exe'
 $FfprobeExe = Join-Path $FfmpegDir 'ffprobe.exe'
-if (-not (Test-Path $FfmpegExe) -or -not (Test-Path $FfprobeExe)) {
-    Write-Host "Downloading full Windows FFmpeg runtime..." -ForegroundColor Yellow
-    # The export engine runtime-tests each hardware encoder before it is offered
-    # and automatically falls back to CPU x264 if the user's driver cannot
-    # initialize the bundled FFmpeg/NVENC/QSV/AMF implementation.
-    $FfmpegUrl = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
-    $FfmpegZip = Join-Path $env:TEMP 'Cammetry-ffmpeg.zip'
-    $FfmpegExtract = Join-Path $env:TEMP 'Cammetry-ffmpeg'
-    Remove-Item -Recurse -Force $FfmpegExtract -ErrorAction SilentlyContinue
-    Remove-Item -Force $FfmpegZip -ErrorAction SilentlyContinue
-    Invoke-WebRequest -Uri $FfmpegUrl -OutFile $FfmpegZip -UseBasicParsing
-    Expand-Archive -Path $FfmpegZip -DestinationPath $FfmpegExtract -Force
-    $DownloadedFfmpeg = Get-ChildItem -Path $FfmpegExtract -Filter ffmpeg.exe -Recurse | Select-Object -First 1
-    $DownloadedFfprobe = Get-ChildItem -Path $FfmpegExtract -Filter ffprobe.exe -Recurse | Select-Object -First 1
-    if (-not $DownloadedFfmpeg -or -not $DownloadedFfprobe) { throw 'Downloaded FFmpeg archive did not contain ffmpeg.exe and ffprobe.exe.' }
-    New-Item -ItemType Directory -Force $FfmpegDir | Out-Null
-    Copy-Item $DownloadedFfmpeg.FullName $FfmpegExe -Force
-    Copy-Item $DownloadedFfprobe.FullName $FfprobeExe -Force
-    Set-Content -Path (Join-Path $FfmpegDir 'SOURCE.txt') -Encoding UTF8 -Value @(
-        'FFmpeg Windows binaries from BtbN/FFmpeg-Builds',
-        $FfmpegUrl,
-        'Cammetry runtime-tests hardware encoders and falls back to CPU encoding when needed.',
-        'FFmpeg is distributed under its own license. See THIRD_PARTY_NOTICES.md.'
-    )
-    Remove-Item -Recurse -Force $FfmpegExtract -ErrorAction SilentlyContinue
-    Remove-Item -Force $FfmpegZip -ErrorAction SilentlyContinue
+$FfmpegBuild = 'n7.1-62-gb168ed9b14'
+$FfmpegRelease = 'autobuild-2024-12-31-13-02'
+$FfmpegAsset = "ffmpeg-$FfmpegBuild-win64-gpl-7.1.zip"
+$FfmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/$FfmpegRelease/$FfmpegAsset"
+
+# Always stage the pinned runtime from its immutable release URL for reproducible
+# official/test packages. Do not consume BtbN's moving master/latest aliases.
+Write-Host "Staging pinned Windows FFmpeg runtime: $FfmpegBuild" -ForegroundColor Yellow
+$FfmpegZip = Join-Path $env:TEMP 'Cammetry-ffmpeg.zip'
+$FfmpegExtract = Join-Path $env:TEMP 'Cammetry-ffmpeg'
+Remove-Item -Recurse -Force $FfmpegExtract -ErrorAction SilentlyContinue
+Remove-Item -Force $FfmpegZip -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $FfmpegDir -ErrorAction SilentlyContinue
+Invoke-WebRequest -Uri $FfmpegUrl -OutFile $FfmpegZip -UseBasicParsing
+Expand-Archive -Path $FfmpegZip -DestinationPath $FfmpegExtract -Force
+$DownloadedFfmpeg = Get-ChildItem -Path $FfmpegExtract -Filter ffmpeg.exe -Recurse | Select-Object -First 1
+$DownloadedFfprobe = Get-ChildItem -Path $FfmpegExtract -Filter ffprobe.exe -Recurse | Select-Object -First 1
+if (-not $DownloadedFfmpeg -or -not $DownloadedFfprobe) { throw 'Pinned FFmpeg archive did not contain ffmpeg.exe and ffprobe.exe.' }
+New-Item -ItemType Directory -Force $FfmpegDir | Out-Null
+Copy-Item $DownloadedFfmpeg.FullName $FfmpegExe -Force
+Copy-Item $DownloadedFfprobe.FullName $FfprobeExe -Force
+
+$FfmpegVersionLine = (& $FfmpegExe -hide_banner -version | Select-Object -First 1)
+if ($LASTEXITCODE -ne 0 -or $FfmpegVersionLine -notmatch [regex]::Escape($FfmpegBuild)) {
+    throw "Unexpected FFmpeg runtime. Expected $FfmpegBuild, got: $FfmpegVersionLine"
 }
+$FfmpegEncoders = (& $FfmpegExe -hide_banner -encoders 2>&1 | Out-String)
+if ($LASTEXITCODE -ne 0) { throw 'Pinned FFmpeg could not enumerate encoders.' }
+if ($FfmpegEncoders -notmatch 'libx264') { throw 'Pinned FFmpeg does not expose required CPU libx264 encoding.' }
+if ($FfmpegEncoders -notmatch 'h264_nvenc') { Write-Warning 'Pinned FFmpeg does not expose h264_nvenc; NVIDIA users will use another validated encoder or CPU x264.' }
+Write-Host "Validated FFmpeg runtime: $FfmpegVersionLine" -ForegroundColor Green
+
+Set-Content -Path (Join-Path $FfmpegDir 'SOURCE.txt') -Encoding UTF8 -Value @(
+    'FFmpeg Windows binaries from BtbN/FFmpeg-Builds',
+    "Pinned build: $FfmpegBuild",
+    "Release: $FfmpegRelease",
+    $FfmpegUrl,
+    'Cammetry runtime-tests hardware encoders and automatically falls back to CPU x264 when needed.',
+    'FFmpeg is distributed under its own license. See THIRD_PARTY_NOTICES.md.'
+)
+Remove-Item -Recurse -Force $FfmpegExtract -ErrorAction SilentlyContinue
+Remove-Item -Force $FfmpegZip -ErrorAction SilentlyContinue
 
 Remove-Item -Recurse -Force build, dist-installer, dist-portable, release -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force release | Out-Null
@@ -136,8 +151,8 @@ if (-not $MakeNsis) {
 Write-Host "Building Windows Setup installer..." -ForegroundColor Yellow
 Push-Location "installer"
 try {
-    & $MakeNsis "Cammetry.nsi"
-    if ($LASTEXITCODE -ne 0) { throw 'NSIS installer build failed.' }
+    & $MakeNsis /WX "Cammetry.nsi"
+    if ($LASTEXITCODE -ne 0) { throw 'NSIS installer build failed or produced a warning treated as an error.' }
 } finally { Pop-Location }
 
 Write-Host ""
