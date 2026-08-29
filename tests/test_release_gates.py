@@ -37,6 +37,33 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn('APP_VERSION = "0.5.1"', text)
         self.assertIn("from tts_final_ui import App", text)
 
+    def test_event_browser_tree_and_scrollbar_share_the_same_parent(self):
+        text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
+        self.assertIn("self.event_tree = ttk.Treeview(\n            treebox,", text)
+        self.assertIn("scroll = ttk.Scrollbar(treebox", text)
+
+    def test_final_ui_uses_accessible_checkbox_indicators(self):
+        text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
+        self.assertIn("AccessibleCheck", text)
+        self.assertIn("upgrade_native_checkbuttons(export_dialog)", text)
+        self.assertIn("Apply image adjustments to exported video", text)
+
+    def test_final_ui_replaces_classic_more_menu(self):
+        text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
+        self.assertIn('flat_button(parent, "Settings", self.open_settings)', text)
+        self.assertIn('flat_button(parent, "Tools", self.show_tools_panel)', text)
+        self.assertNotIn("tk.Menu(", text)
+
+    def test_hardware_encoder_probe_uses_normal_video_dimensions(self):
+        text = (ROOT / "tts_ui_polish.py").read_text(encoding="utf-8")
+        self.assertIn("s=640x360", text)
+        self.assertNotIn("s=64x64", text)
+        self.assertIn("tts_export_v051._encoder_smoke_test = robust_encoder_smoke_test", text)
+
+    def test_ci_compiles_ui_polish_module(self):
+        text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("tts_ui_polish.py", text)
+
 
 if __name__ == "__main__":
     unittest.main()
