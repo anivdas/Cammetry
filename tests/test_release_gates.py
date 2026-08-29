@@ -60,6 +60,16 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertNotIn("s=64x64", text)
         self.assertIn("tts_export_v051._encoder_smoke_test = robust_encoder_smoke_test", text)
 
+    def test_export_progress_is_integrated_not_a_floating_toast(self):
+        text = (ROOT / "tts_ui_polish.py").read_text(encoding="utf-8")
+        self.assertIn("def build_inline_status", text)
+        self.assertIn('flat_button(self._export_inline, "Open file"', text)
+        self.assertIn('flat_button(self._export_inline, "Show in folder"', text)
+        self.assertIn("tts_ui.App._show_export_toast = show_export_inline", text)
+        self.assertIn("tts_ui.App._poll_worker = inline_poll_worker", text)
+        self.assertNotIn("messagebox.showinfo", text)
+        self.assertNotIn("messagebox.showerror", text)
+
     def test_ci_compiles_ui_polish_module(self):
         text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         self.assertIn("tts_ui_polish.py", text)
