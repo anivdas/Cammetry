@@ -36,6 +36,43 @@ jobs:
         shell: pwsh
         run: .\Build-Release.ps1
 
+      - name: Smoke-test Setup install, packaged launch, and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Setup = (Resolve-Path '.\release\Cammetry-Setup-v0.5.1.exe').Path
+          $SmokeDir = Join-Path $env:RUNNER_TEMP 'CammetrySmoke'
+          Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
+
+          Write-Host "Installing beta silently to $SmokeDir"
+          & $Setup /S "/D=$SmokeDir"
+          if ($LASTEXITCODE -ne 0) { throw "Setup smoke install failed with exit code $LASTEXITCODE" }
+
+          $AppExe = Join-Path $SmokeDir 'Cammetry.exe'
+          $Uninstaller = Join-Path $SmokeDir 'Uninstall.exe'
+          if (-not (Test-Path $AppExe)) { throw 'Setup completed but Cammetry.exe was not installed.' }
+          if (-not (Test-Path $Uninstaller)) { throw 'Setup completed but Uninstall.exe was not installed.' }
+
+          $Version = (Get-Item $AppExe).VersionInfo.ProductVersion
+          if ($Version -notlike '0.5.1*') { throw "Installed Cammetry.exe has unexpected ProductVersion: $Version" }
+
+          Write-Host 'Launching packaged Cammetry.exe for startup smoke test...'
+          $Process = Start-Process -FilePath $AppExe -PassThru
+          Start-Sleep -Seconds 4
+          if ($Process.HasExited) { throw "Packaged Cammetry.exe exited during startup smoke test with code $($Process.ExitCode)." }
+          Stop-Process -Id $Process.Id -Force
+          $Process.WaitForExit()
+
+          Write-Host 'Running silent uninstall...'
+          & $Uninstaller /S
+          if ($LASTEXITCODE -ne 0) { throw "Uninstall smoke test failed with exit code $LASTEXITCODE" }
+          Start-Sleep -Seconds 2
+          if (Test-Path $SmokeDir) {
+            $Remaining = Get-ChildItem -Force $SmokeDir -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+            throw "Uninstall left the install directory behind. Remaining: $($Remaining -join ', ')"
+          }
+          Write-Host 'Setup/install/launch/uninstall smoke test passed.' -ForegroundColor Green
+
       - name: Upload Setup installer
         uses: actions/upload-artifact@v4
         with:
