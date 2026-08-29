@@ -13,7 +13,7 @@ case "$ARCH" in
 esac
 
 rm -rf build dist release/macos-temp
-mkdir -p build release release/macos-temp
+mkdir -p build release
 
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements-build.txt
@@ -32,14 +32,12 @@ else
   echo "WARNING: bundled FFmpeg does not expose h264_videotoolbox; Cammetry will use CPU H.264 unless another compatible FFmpeg is available." >&2
 fi
 
-# Build a macOS .icns from the repository PNG. A larger source icon can replace
-# assets/app.png later without changing this script.
 ICONSET="build/Cammetry.iconset"
 mkdir -p "$ICONSET"
 for spec in "16 icon_16x16.png" "32 icon_16x16@2x.png" "32 icon_32x32.png" "64 icon_32x32@2x.png" "128 icon_128x128.png" "256 icon_128x128@2x.png" "256 icon_256x256.png" "512 icon_256x256@2x.png" "512 icon_512x512.png" "1024 icon_512x512@2x.png"; do
   set -- $spec
   sips -z "$1" "$1" assets/app.png --out "$ICONSET/$2" >/dev/null
- done
+done
 iconutil -c icns "$ICONSET" -o build/Cammetry.icns
 
 python3 -m PyInstaller \
@@ -62,20 +60,23 @@ if [[ ! -d "$APP" ]]; then
 fi
 
 # Ad-hoc signing gives the bundle consistent internal signatures for testing.
-# Official releases can be Developer ID signed and notarized when Apple
-# Developer credentials are configured in GitHub Actions.
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep --strict "$APP"
 
+# Intel hosted runners have tighter free-disk headroom. Remove build/cache data
+# before packaging and create the DMG directly from dist so the app is not
+# duplicated into a second staging directory.
+rm -rf build
+python3 -m pip cache purge >/dev/null 2>&1 || true
+rm -rf "$HOME/Library/Caches/pip" 2>/dev/null || true
+
+ln -s /Applications "dist/Applications"
+DMG="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.dmg"
+hdiutil create -volname "Cammetry" -srcfolder "dist" -ov -format UDZO "$DMG" >/dev/null
+rm -f "dist/Applications"
+
 ZIP="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
-
-DMGROOT="release/macos-temp/dmg"
-mkdir -p "$DMGROOT"
-cp -R "$APP" "$DMGROOT/Cammetry.app"
-ln -s /Applications "$DMGROOT/Applications"
-DMG="release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.dmg"
-hdiutil create -volname "Cammetry" -srcfolder "$DMGROOT" -ov -format UDZO "$DMG" >/dev/null
 
 shasum -a 256 "$DMG" "$ZIP" | tee "release/Cammetry-macOS-${RELEASE_ARCH}-v${VERSION}.sha256.txt"
 
