@@ -57,6 +57,22 @@ DASHBOARD_STYLE_KEYS = {"Default": "default", "Compact": "compact"}
 DASHBOARD_SIZE_KEYS = {"Small": "small", "Medium": "medium", "Large": "large", "X-Large": "xlarge"}
 MAP_MODE_KEYS = {"Local Grid (offline)": "map_offline", "OpenStreetMap (online)": "map_osm"}
 
+BROWSE_TESLACAM_LABELS = {
+    "English": "Browse TeslaCam…",
+    "Spanish": "Buscar TeslaCam…",
+    "French": "Parcourir TeslaCam…",
+    "German": "TeslaCam durchsuchen…",
+    "Chinese (Simplified)": "浏览 TeslaCam…",
+    "Japanese": "TeslaCamを参照…",
+    "Korean": "TeslaCam 찾아보기…",
+    "Portuguese": "Procurar TeslaCam…",
+    "Russian": "Обзор TeslaCam…",
+    "Italian": "Sfoglia TeslaCam…",
+    "Dutch": "TeslaCam bladeren…",
+    "Polish": "Przeglądaj TeslaCam…",
+    "Turkish": "TeslaCam gözat…",
+}
+
 
 def localized_choice(language: str, canonical: str, mapping: dict[str, str]) -> str:
     key = mapping.get(canonical)
@@ -137,7 +153,7 @@ class TimelineCanvas(tk.Canvas):
 
 class RouteCanvas(tk.Canvas):
     def __init__(self,parent,language="English",map_mode="Local Grid (offline)",cache_dir=None):
-        super().__init__(parent,bg="#0c1219",height=190,highlightthickness=0); self.language=language; self.map_mode=map_mode; self.cache_dir=cache_dir or (Path.home()/".cammetry-map-cache"); self.samples=[]; self.fps=36.0; self.position=0.0; self.zoom=1.0; self.pan_x=0.0; self.pan_y=0.0; self._pan_start=None; self.map_mosaic=None; self.map_photo=None; self._map_queue=queue.Queue(); self._map_token=0
+        super().__init__(parent,bg="#0c1219",height=190,highlightthickness=0); self.language=language; self.map_mode=map_mode; self.cache_dir=cache_dir or (Path.home()/".cammetry-map-cache"); self.samples=[]; self.fps=36.0; self.position=0.0; self.zoom=1.0; self.pan_x=0.0; self.pan_y=0.0; self._pan_start=None; self.map_mosaic=None; self.map_photo=None; self._map_queue=queue.Queue(); self._map_token=0; self.empty_text=tr(language,"no_clip_selected")
         self.bind("<Configure>",lambda _e:self.redraw()); self.bind("<MouseWheel>",self._wheel); self.bind("<ButtonPress-3>",self._pan_begin); self.bind("<B3-Motion>",self._pan_move); self.after(200,self._poll_map)
     def set_data(self,samples,fps):
         self.samples=samples or []; self.fps=fps or 36.0; self.map_mosaic=None; self.map_photo=None; self.zoom=1.0; self.pan_x=self.pan_y=0.0; self._map_token+=1; token=self._map_token
@@ -147,6 +163,8 @@ class RouteCanvas(tk.Canvas):
                 except Exception as exc:self._map_queue.put((token,exc))
             threading.Thread(target=work,daemon=True).start()
         self.redraw()
+    def set_empty_text(self,text):
+        self.empty_text=text; self.redraw()
     def _poll_map(self):
         try:
             while True:
@@ -171,7 +189,7 @@ class RouteCanvas(tk.Canvas):
         if len(valid)<2:
             for x in range(0,w,50):self.create_line(x,0,x,h,fill="#151e28")
             for y in range(0,h,50):self.create_line(0,y,w,y,fill="#151e28")
-            self.create_text(w//2,h//2,text=tr(self.language,"no_gps_route"),fill=MUTED,font=("Segoe UI",9));return
+            self.create_text(w//2,h//2,text=self.empty_text,fill=MUTED,font=("Segoe UI",9));return
         transform=self._map_transform(w,h)
         if transform and self.map_mosaic:
             scale,x0,y0,dw,dh=transform;img=self.map_mosaic.image.resize((dw,dh),Image.Resampling.LANCZOS);self.map_photo=ImageTk.PhotoImage(img);self.create_image(x0,y0,image=self.map_photo,anchor="nw");self.create_rectangle(0,0,w,h,fill="#071019",stipple="gray25",outline="")
@@ -219,7 +237,7 @@ class BlurZoneDialog(tk.Toplevel):
 
 class App(tk.Tk):
     def __init__(self):
-        super().__init__();self.title(f"{APP_NAME} {APP_VERSION} — Unofficial");self.geometry("1500x940");self.minsize(1180,760);self.configure(bg=BG);self.settings=load_settings();self.language=self.settings.get("language","English");self.root_path=tk.StringVar(value=self.settings.get("default_folder",""))
+        super().__init__();self.title(f"{APP_NAME} {APP_VERSION}");self.geometry("1500x940");self.minsize(1180,760);self.configure(bg=BG);self.settings=load_settings();self.language=self.settings.get("language","English");self.root_path=tk.StringVar(value=self.settings.get("default_folder",""))
         self.filter_kind = "All"
         self.search_var = tk.StringVar()
         self.status_var = tk.StringVar(value=tr(self.language, "open_folder_status"))
@@ -245,6 +263,7 @@ class App(tk.Tk):
         self._last_preview_update = 0.0
         self.preview_layout = tk.StringVar(value=localized_choice(self.language, "Six Camera", LAYOUT_KEYS))
         self.play_speed = tk.DoubleVar(value=1.0)
+        self._apply_window_icon()
         self._setup_style()
         self._build_ui()
         self._bind_shortcuts()
@@ -265,6 +284,17 @@ class App(tk.Tk):
 
     def t(self,key): return tr(self.language,key)
     def tf(self,key,**kwargs): return trf(self.language,key,**kwargs)
+
+    def _apply_window_icon(self):
+        if os.name != "nt":
+            return
+        try:
+            base=Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))
+            icon=base/"assets"/"app.ico"
+            if icon.exists():
+                self.iconbitmap(default=str(icon))
+        except Exception:
+            pass
 
     def _setup_style(self):
         style=ttk.Style(self)
@@ -293,7 +323,7 @@ class App(tk.Tk):
         tk.Label(brand,text=self.t("brand_subtitle"),bg=BG,fg=MUTED,font=("Segoe UI",8)).pack(anchor="w")
         pathbox=tk.Frame(bar,bg=PANEL,highlightthickness=1,highlightbackground=BORDER); pathbox.pack(side="left",fill="x",expand=True,padx=18,pady=5)
         self.path_entry=tk.Entry(pathbox,textvariable=self.root_path,bg=PANEL,fg=TEXT,insertbackground="white",relief="flat",bd=0,font=("Segoe UI",9)); self.path_entry.pack(side="left",fill="x",expand=True,padx=10,pady=7)
-        flat_button(pathbox,self.t("open_folder"),self.browse_root,accent=True).pack(side="right",padx=4,pady=3)
+        flat_button(pathbox,BROWSE_TESLACAM_LABELS.get(self.language,"Browse TeslaCam…"),self.browse_root,accent=True).pack(side="right",padx=4,pady=3)
         flat_button(pathbox,self.t("auto_detect"),self.auto_detect_root).pack(side="right",padx=2,pady=3)
         flat_button(bar,"⚙",self.open_settings,width=3).pack(side="right",padx=4,pady=8)
         flat_button(bar,"?",self.open_support,width=3).pack(side="right",padx=4,pady=8)
@@ -342,7 +372,7 @@ class App(tk.Tk):
         speed_card=tk.Frame(self.right,bg=CARD,highlightthickness=1,highlightbackground=BORDER); speed_card.pack(fill="x",padx=10,pady=5)
         self.speed_value=tk.Label(speed_card,text="—",bg=CARD,fg="#ffffff",font=("Segoe UI Semibold",34)); self.speed_value.pack(side="left",padx=(12,4),pady=8)
         self.speed_unit=tk.Label(speed_card,text="MPH",bg=CARD,fg=MUTED,font=("Segoe UI Semibold",9)); self.speed_unit.pack(side="left",pady=(22,0))
-        self.state_value=tk.Label(speed_card,text=self.t("assist_manual"),bg=CARD,fg=MUTED,font=("Segoe UI Semibold",10)); self.state_value.pack(side="right",padx=12)
+        self.state_value=tk.Label(speed_card,text="—",bg=CARD,fg=MUTED,font=("Segoe UI Semibold",10)); self.state_value.pack(side="right",padx=12)
         grid=tk.Frame(self.right,bg=PANEL); grid.pack(fill="x",padx=8,pady=4); grid.grid_columnconfigure(0,weight=1,uniform="metric"); grid.grid_columnconfigure(1,weight=1,uniform="metric")
         self.metric_labels={}
         for i,(key,title) in enumerate((("gear",self.t("gear")),("steer",self.t("steering")),("accel",self.t("accelerator")),("brake",self.t("brake")))):
@@ -377,7 +407,15 @@ class App(tk.Tk):
         messagebox.showinfo(APP_NAME,self.t("privacy_first_title")+"\n\n"+self.t("privacy_first_body"));self.settings["privacy_notice_seen"]=True;save_settings(self.settings)
 
     def browse_root(self):
-        p=filedialog.askdirectory(title=self.t("choose_teslacam"),initialdir=self.root_path.get() or None)
+        current=Path(self.root_path.get().strip()) if self.root_path.get().strip() else None
+        initial=current if current and current.exists() else None
+        if initial is None:
+            roots=detect_teslacam_roots()
+            if roots: initial=roots[0]
+        if initial is None:
+            videos=Path.home()/"Videos"
+            initial=videos if videos.exists() else Path.home()
+        p=filedialog.askdirectory(title=self.t("choose_teslacam"),initialdir=str(initial))
         if p:self.root_path.set(p);self.scan()
 
     def auto_detect_root(self,silent=False):
@@ -394,6 +432,9 @@ class App(tk.Tk):
         try:self.groups=discover_clips(p)
         except Exception as exc:messagebox.showerror(APP_NAME,str(exc));return
         self.refresh_event_list();self.progress["value"]=0;self.status_var.set(self.tf("found_groups",count=len(self.groups)))
+        children=self.event_tree.get_children()
+        if children:
+            first=children[0]; self.event_tree.selection_set(first); self.event_tree.focus(first); self.event_tree.see(first); self.on_event_select()
 
     def set_filter(self,kind):self.filter_kind=kind;self.refresh_event_list()
     def refresh_event_list(self):
@@ -413,8 +454,14 @@ class App(tk.Tk):
         if idx>=len(self.filtered_groups):return
         self.load_group(self.filtered_groups[idx])
 
+    def _best_layout_for_group(self,g:ClipGroup):
+        cams=set(g.cameras)
+        if len(cams)<=1:return "Single Camera"
+        if "left_pillar" in cams or "right_pillar" in cams or len(cams)>=5:return "Six Camera"
+        return "Four Camera"
+
     def load_group(self,g:ClipGroup):
-        self._load_token+=1;token=self._load_token;self.player.pause();self.selected_group=g;self.samples=[];self.telemetry_fps=36.0;self.video_duration=0.0;self.in_point=0.0;self.out_point=0.0;self.blur_zones=[];self.active_camera="front" if "front" in g.cameras else next(iter(g.cameras));self.triggered_camera=self._infer_triggered_camera(g.event_info);self.clip_title.configure(text=f"{g.display_time()}   •   {g.source_kind}   •   {len(g.cameras)} cameras");self.telemetry_badge.configure(text=self.t("reading").upper(),fg=WARN);self.status_var.set(self.t("opening_sync"))
+        self._load_token+=1;token=self._load_token;self.player.pause();self.selected_group=g;self.samples=[];self.telemetry_fps=36.0;self.video_duration=0.0;self.in_point=0.0;self.out_point=0.0;self.blur_zones=[];self.active_camera="front" if "front" in g.cameras else next(iter(g.cameras));self.triggered_camera=self._infer_triggered_camera(g.event_info);self.preview_layout.set(localized_choice(self.language,self._best_layout_for_group(g),LAYOUT_KEYS));self.clip_title.configure(text=f"{g.display_time()}   •   {g.source_kind}   •   {len(g.cameras)} cameras");self.telemetry_badge.configure(text=self.t("reading").upper(),fg=WARN);self.status_var.set(self.t("opening_sync"));self.route.set_empty_text(self.t("reading"));self.route.set_data([],36.0);self.insights.configure(text=self.t("reading"));self.event_info.configure(text="");self._update_telemetry_panel(0.0)
         try:self.player.load_group(g);self.video_duration=self.player.duration
         except Exception as exc: messagebox.showerror(APP_NAME,self.tf("could_not_open",error=exc)); return
         self.out_point=self.video_duration; self.timeline.set_data([],36.0,self.video_duration,self._event_relative_time(g)); self.timeline.set_trim(self.in_point,self.out_point)
@@ -435,7 +482,7 @@ class App(tk.Tk):
                     if token!=self._load_token:continue
                     self.samples=samples; self.telemetry_fps=info.fps if info else 36.0
                     if info and info.duration>0:self.video_duration=info.duration; self.player.duration=info.duration
-                    self.timeline.set_data(self.samples,self.telemetry_fps,self.video_duration,self._event_relative_time(g)); self.timeline.set_trim(self.in_point,self.out_point); self.route.set_data(self.samples,self.telemetry_fps)
+                    self.timeline.set_data(self.samples,self.telemetry_fps,self.video_duration,self._event_relative_time(g)); self.timeline.set_trim(self.in_point,self.out_point); self.route.set_empty_text(self.t("no_gps_route")); self.route.set_data(self.samples,self.telemetry_fps)
                     if samples:
                         self.telemetry_badge.configure(text=f"{len(samples)} {self.t('samples').upper()}",fg=GOOD); self.status_var.set(self.tf("telemetry_synced",count=len(samples),fps=self.telemetry_fps))
                     else:
@@ -551,7 +598,9 @@ class App(tk.Tk):
     def _update_telemetry_panel(self,pos):
         s=self._sample_for_pos(pos)
         if not s:
-            self.speed_value.configure(text="—"); return
+            self.speed_value.configure(text="—"); self.speed_unit.configure(text="MPH" if self.settings.get("units","mph")=="mph" else "km/h"); self.state_value.configure(text="—",fg=MUTED)
+            for label in self.metric_labels.values():label.configure(text="—",fg=TEXT)
+            return
         mph=self.settings.get("units","mph")=="mph"; self.speed_value.configure(text=f"{s.speed_mph if mph else s.speed_kph:.0f}"); self.speed_unit.configure(text="MPH" if mph else "km/h")
         state=assist_label(self.language,s.autopilot_state); self.state_value.configure(text=state,fg=FSD if s.autopilot_state else MUTED)
         self.metric_labels["gear"].configure(text=s.gear); self.metric_labels["steer"].configure(text=f"{s.steering_wheel_angle:+.1f}°"); self.metric_labels["accel"].configure(text=f"{s.accelerator_pedal_position:.2f}"); self.metric_labels["brake"].configure(text=self.t("on") if s.brake_applied else self.t("off"),fg=DANGER if s.brake_applied else TEXT)

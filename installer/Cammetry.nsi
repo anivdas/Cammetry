@@ -10,8 +10,8 @@ Unicode true
 
 Name "${APP_NAME} ${APP_VERSION}"
 OutFile "..\release\Cammetry-Setup-v${APP_VERSION}.exe"
-InstallDir "$LOCALAPPDATA\Programs\${APP_DIR}"
-RequestExecutionLevel user
+InstallDir "$PROGRAMFILES64\${APP_DIR}"
+RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 SetCompressorDictSize 64
 Icon "..\assets\app.ico"
@@ -25,7 +25,7 @@ VIAddVersionKey "FileVersion" "${APP_VERSION}"
 VIAddVersionKey "FileDescription" "Installer for ${APP_NAME}"
 VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Cammetry contributors"
 
-!define MUI_LANGDLL_REGISTRY_ROOT HKCU
+!define MUI_LANGDLL_REGISTRY_ROOT HKLM
 !define MUI_LANGDLL_REGISTRY_KEY "Software\Cammetry"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
@@ -63,10 +63,14 @@ VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Cammetry contributors"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 Function .onInit
+  SetShellVarContext all
+  SetRegView 64
   !insertmacro MUI_LANGDLL_DISPLAY
 FunctionEnd
 
 Function un.onInit
+  SetShellVarContext all
+  SetRegView 64
   !insertmacro MUI_UNGETLANGUAGE
 FunctionEnd
 
@@ -80,14 +84,14 @@ Section "Cammetry" SecMain
   CreateShortcut "$SMPROGRAMS\${APP_DIR}\Uninstall ${APP_NAME}.lnk" "$INSTDIR\Uninstall.exe"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKCU "${APP_REGKEY}" "DisplayName" "${APP_NAME}"
-  WriteRegStr HKCU "${APP_REGKEY}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKCU "${APP_REGKEY}" "Publisher" "Cammetry Project"
-  WriteRegStr HKCU "${APP_REGKEY}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
-  WriteRegStr HKCU "${APP_REGKEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-  WriteRegStr HKCU "${APP_REGKEY}" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'
-  WriteRegDWORD HKCU "${APP_REGKEY}" "NoModify" 1
-  WriteRegDWORD HKCU "${APP_REGKEY}" "NoRepair" 1
+  WriteRegStr HKLM "${APP_REGKEY}" "DisplayName" "${APP_NAME}"
+  WriteRegStr HKLM "${APP_REGKEY}" "DisplayVersion" "${APP_VERSION}"
+  WriteRegStr HKLM "${APP_REGKEY}" "Publisher" "Cammetry Project"
+  WriteRegStr HKLM "${APP_REGKEY}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
+  WriteRegStr HKLM "${APP_REGKEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+  WriteRegStr HKLM "${APP_REGKEY}" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'
+  WriteRegDWORD HKLM "${APP_REGKEY}" "NoModify" 1
+  WriteRegDWORD HKLM "${APP_REGKEY}" "NoRepair" 1
 SectionEnd
 
 Section /o "Desktop shortcut" SecDesktop
@@ -107,7 +111,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${APP_DIR}\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\${APP_DIR}\Uninstall ${APP_NAME}.lnk"
   RMDir "$SMPROGRAMS\${APP_DIR}"
-  DeleteRegKey HKCU "${APP_REGKEY}"
-  DeleteRegKey HKCU "Software\Cammetry"
+  DeleteRegKey HKLM "${APP_REGKEY}"
+  DeleteRegKey HKLM "Software\Cammetry"
   RMDir /r "$INSTDIR"
 SectionEnd

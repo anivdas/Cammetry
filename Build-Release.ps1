@@ -71,6 +71,7 @@ Write-Host "Building installer application folder..." -ForegroundColor Yellow
   --collect-all cv2 `
   --collect-all PIL `
   --add-data "ffmpeg_bin;ffmpeg_bin" `
+  --add-data "assets;assets" `
   --distpath dist-installer `
   cammetry.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller installer-folder build failed.' }
@@ -85,6 +86,7 @@ Write-Host "Building portable single-file EXE..." -ForegroundColor Yellow
   --collect-all cv2 `
   --collect-all PIL `
   --add-data "ffmpeg_bin;ffmpeg_bin" `
+  --add-data "assets;assets" `
   --distpath dist-portable `
   cammetry.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller portable build failed.' }
