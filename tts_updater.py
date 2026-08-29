@@ -94,13 +94,12 @@ def download_setup(info: UpdateInfo, destination_dir: Path, timeout: int = 60) -
 def authenticode_is_trusted(path: Path) -> bool:
     if os.name != "nt":
         return False
-    command = [
-        "powershell.exe",
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        f"$s=Get-AuthenticodeSignature -LiteralPath '{str(path).replace("'", "''")}'; if ($s.Status -eq 'Valid') {{ exit 0 }} else {{ Write-Output $s.Status; exit 1 }}",
-    ]
+    escaped_path = str(path).replace("'", "''")
+    powershell = (
+        f"$s=Get-AuthenticodeSignature -LiteralPath '{escaped_path}'; "
+        "if ($s.Status -eq 'Valid') { exit 0 } else { Write-Output $s.Status; exit 1 }"
+    )
+    command = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", powershell]
     try:
         result = subprocess.run(
             command,
