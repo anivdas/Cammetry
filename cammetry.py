@@ -22,11 +22,9 @@ def enable_windows_dpi_awareness() -> None:
 
 def main() -> int:
     enable_windows_dpi_awareness()
-    # Keep the release version authoritative at the application entry point so
-    # every module imported afterward (UI/update checks/About) sees 0.5.1.
     import tts_core
     tts_core.APP_VERSION = APP_VERSION
-    from tts_beta_ui import App
+    from tts_hotfix_ui import App
     app = App()
     app.mainloop()
     return 0
