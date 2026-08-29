@@ -31,6 +31,17 @@ def _mix(hex_color: str, amount: float) -> str:
     return f"#{max(0,min(255,r)):02x}{max(0,min(255,g)):02x}{max(0,min(255,b)):02x}"
 
 
+def _widget_bg(widget, fallback: str) -> str:
+    for key in ("bg", "background"):
+        try:
+            value = str(widget.cget(key))
+            if value:
+                return value
+        except Exception:
+            pass
+    return fallback
+
+
 class FluentButton(tk.Canvas):
     """Canvas-backed button with a modern flat/rounded appearance and keyboard focus."""
 
@@ -40,9 +51,10 @@ class FluentButton(tk.Canvas):
         self._command = command
         self._state = "normal"
         self._base_fill = ACCENT if accent else DANGER if danger else CARD2
-        self._parent_bg = str(parent.cget("bg")) if "bg" in parent.keys() else BG
+        self._parent_bg = _widget_bg(parent, BG)
         self._height_px = 34
-        self._width_px = max(42, int(width or 0) * 10 + 18) if width else max(58, len(self._text) * 7 + 28)
+        self._natural_width = max(42, int(width or 0) * 10 + 18) if width else max(58, len(self._text) * 7 + 28)
+        self._width_px = self._natural_width
         super().__init__(
             parent,
             width=self._width_px,
@@ -61,7 +73,16 @@ class FluentButton(tk.Canvas):
         self.bind("<Leave>", lambda _e: self._draw())
         self.bind("<FocusIn>", lambda _e: self._draw(focused=True))
         self.bind("<FocusOut>", lambda _e: self._draw())
+        self.bind("<Configure>", self._on_resize)
         self._draw()
+
+    def _on_resize(self, event):
+        width = max(2, int(event.width))
+        height = max(2, int(event.height))
+        if width != self._width_px or height != self._height_px:
+            self._width_px = width
+            self._height_px = height
+            self._draw()
 
     def _round_rect(self, x1, y1, x2, y2, radius, *, fill, outline, width=1):
         r = max(2, min(radius, int((y2 - y1) / 2)))
@@ -86,7 +107,10 @@ class FluentButton(tk.Canvas):
         self._round_rect(1, 1, self._width_px - 2, self._height_px - 2, 7, fill=fill, outline=outline)
         self.create_text(self._width_px / 2, self._height_px / 2, text=self._text, fill=fg,
                          font=("Segoe UI Semibold", 9), anchor="center")
-        self.configure(cursor="arrow" if disabled else "hand2")
+        try:
+            super().configure(cursor="arrow" if disabled else "hand2")
+        except Exception:
+            pass
 
     def _click(self, _event=None):
         if self._state != "disabled" and callable(self._command):
@@ -105,7 +129,13 @@ class FluentButton(tk.Canvas):
             kwargs.update(cnf)
         redraw = False
         if "text" in kwargs:
-            self._text = str(kwargs.pop("text")); redraw = True
+            self._text = str(kwargs.pop("text"))
+            self._natural_width = max(58, len(self._text) * 7 + 28)
+            try:
+                super().configure(width=self._natural_width)
+            except Exception:
+                pass
+            redraw = True
         if "state" in kwargs:
             self._state = str(kwargs.pop("state")); redraw = True
         if "bg" in kwargs:
@@ -136,8 +166,7 @@ class AccessibleCheck(tk.Canvas):
     def __init__(self, parent, variable: tk.Variable, size: int = 20):
         self.variable = variable
         self.size = max(18, int(size))
-        parent_bg = str(parent.cget("bg")) if "bg" in parent.keys() else PANEL
-        super().__init__(parent, width=self.size, height=self.size, bg=parent_bg,
+        super().__init__(parent, width=self.size, height=self.size, bg=_widget_bg(parent, PANEL),
                          highlightthickness=0, bd=0, cursor="hand2", takefocus=1)
         self.bind("<Button-1>", self._toggle)
         self.bind("<Return>", self._toggle)
