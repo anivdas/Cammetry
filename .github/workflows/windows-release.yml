@@ -45,8 +45,11 @@ jobs:
           Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
 
           Write-Host "Installing beta silently to $SmokeDir"
-          & $Setup /S "/D=$SmokeDir"
-          if ($LASTEXITCODE -ne 0) { throw "Setup smoke install failed with exit code $LASTEXITCODE" }
+          # NSIS Setup/Uninstall are GUI-subsystem executables; invoking them with
+          # '&' does not reliably populate PowerShell's $LASTEXITCODE. Wait for
+          # the actual process and inspect its ExitCode instead.
+          $InstallProcess = Start-Process -FilePath $Setup -ArgumentList @('/S', "/D=$SmokeDir") -Wait -PassThru
+          if ($InstallProcess.ExitCode -ne 0) { throw "Setup smoke install failed with exit code $($InstallProcess.ExitCode)" }
 
           $AppExe = Join-Path $SmokeDir 'Cammetry.exe'
           $Uninstaller = Join-Path $SmokeDir 'Uninstall.exe'
@@ -64,8 +67,8 @@ jobs:
           $Process.WaitForExit()
 
           Write-Host 'Running silent uninstall...'
-          & $Uninstaller /S
-          if ($LASTEXITCODE -ne 0) { throw "Uninstall smoke test failed with exit code $LASTEXITCODE" }
+          $UninstallProcess = Start-Process -FilePath $Uninstaller -ArgumentList @('/S') -Wait -PassThru
+          if ($UninstallProcess.ExitCode -ne 0) { throw "Uninstall smoke test failed with exit code $($UninstallProcess.ExitCode)" }
           Start-Sleep -Seconds 2
           if (Test-Path $SmokeDir) {
             $Remaining = Get-ChildItem -Force $SmokeDir -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
