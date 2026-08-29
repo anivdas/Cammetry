@@ -1,0 +1,151 @@
+name: One-time v0.5.1 Windows UX patch
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Windows UX fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ui = Path('tts_ui.py')
+          text = ui.read_text(encoding='utf-8')
+
+          def replace_once(old, new, label):
+              global text
+              if old not in text:
+                  raise SystemExit(f'missing expected UI pattern: {label}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'MAP_MODE_KEYS = {"Local Grid (offline)": "map_offline", "OpenStreetMap (online)": "map_osm"}\n',
+              'MAP_MODE_KEYS = {"Local Grid (offline)": "map_offline", "OpenStreetMap (online)": "map_osm"}\n\nBROWSE_TESLACAM_LABELS = {\n    "English": "Browse TeslaCam…",\n    "Spanish": "Buscar TeslaCam…",\n    "French": "Parcourir TeslaCam…",\n    "German": "TeslaCam durchsuchen…",\n    "Chinese (Simplified)": "浏览 TeslaCam…",\n    "Japanese": "TeslaCamを参照…",\n    "Korean": "TeslaCam 찾아보기…",\n    "Portuguese": "Procurar TeslaCam…",\n    "Russian": "Обзор TeslaCam…",\n    "Italian": "Sfoglia TeslaCam…",\n    "Dutch": "TeslaCam bladeren…",\n    "Polish": "Przeglądaj TeslaCam…",\n    "Turkish": "TeslaCam gözat…",\n}\n',
+              'browse labels')
+
+          replace_once(
+              'self._map_token=0\n        self.bind("<Configure>"',
+              'self._map_token=0; self.empty_text=tr(language,"no_clip_selected")\n        self.bind("<Configure>"',
+              'route empty text init')
+
+          replace_once(
+              '        self.redraw()\n    def _poll_map(self):',
+              '        self.redraw()\n    def set_empty_text(self,text):\n        self.empty_text=text; self.redraw()\n    def _poll_map(self):',
+              'route empty text setter')
+
+          replace_once(
+              'self.create_text(w//2,h//2,text=tr(self.language,"no_gps_route"),fill=MUTED,font=("Segoe UI",9));return',
+              'self.create_text(w//2,h//2,text=self.empty_text,fill=MUTED,font=("Segoe UI",9));return',
+              'route empty text draw')
+
+          replace_once(
+              'super().__init__();self.title(f"{APP_NAME} {APP_VERSION} — Unofficial");',
+              'super().__init__();self.title(f"{APP_NAME} {APP_VERSION}");',
+              'official title')
+
+          replace_once(
+              '        self.play_speed = tk.DoubleVar(value=1.0)\n        self._setup_style()',
+              '        self.play_speed = tk.DoubleVar(value=1.0)\n        self._apply_window_icon()\n        self._setup_style()',
+              'window icon call')
+
+          replace_once(
+              '    def t(self,key): return tr(self.language,key)\n    def tf(self,key,**kwargs): return trf(self.language,key,**kwargs)\n',
+              '    def t(self,key): return tr(self.language,key)\n    def tf(self,key,**kwargs): return trf(self.language,key,**kwargs)\n\n    def _apply_window_icon(self):\n        if os.name != "nt":\n            return\n        try:\n            base=Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))\n            icon=base/"assets"/"app.ico"\n            if icon.exists():\n                self.iconbitmap(default=str(icon))\n        except Exception:\n            pass\n',
+              'window icon helper')
+
+          replace_once(
+              'flat_button(pathbox,self.t("open_folder"),self.browse_root,accent=True).pack(side="right",padx=4,pady=3)',
+              'flat_button(pathbox,BROWSE_TESLACAM_LABELS.get(self.language,"Browse TeslaCam…"),self.browse_root,accent=True).pack(side="right",padx=4,pady=3)',
+              'browse button label')
+
+          replace_once(
+              'self.state_value=tk.Label(speed_card,text=self.t("assist_manual"),bg=CARD,fg=MUTED,font=("Segoe UI Semibold",10));',
+              'self.state_value=tk.Label(speed_card,text="—",bg=CARD,fg=MUTED,font=("Segoe UI Semibold",10));',
+              'initial telemetry state')
+
+          replace_once(
+              '    def browse_root(self):\n        p=filedialog.askdirectory(title=self.t("choose_teslacam"),initialdir=self.root_path.get() or None)\n        if p:self.root_path.set(p);self.scan()\n',
+              '    def browse_root(self):\n        current=Path(self.root_path.get().strip()) if self.root_path.get().strip() else None\n        initial=current if current and current.exists() else None\n        if initial is None:\n            roots=detect_teslacam_roots()\n            if roots: initial=roots[0]\n        if initial is None:\n            videos=Path.home()/"Videos"\n            initial=videos if videos.exists() else Path.home()\n        p=filedialog.askdirectory(title=self.t("choose_teslacam"),initialdir=str(initial))\n        if p:self.root_path.set(p);self.scan()\n',
+              'browse initial folder')
+
+          replace_once(
+              '        self.refresh_event_list();self.progress["value"]=0;self.status_var.set(self.tf("found_groups",count=len(self.groups)))\n',
+              '        self.refresh_event_list();self.progress["value"]=0;self.status_var.set(self.tf("found_groups",count=len(self.groups)))\n        children=self.event_tree.get_children()\n        if children:\n            first=children[0]; self.event_tree.selection_set(first); self.event_tree.focus(first); self.event_tree.see(first); self.on_event_select()\n',
+              'auto select newest')
+
+          replace_once(
+              '    def load_group(self,g:ClipGroup):\n',
+              '    def _best_layout_for_group(self,g:ClipGroup):\n        cams=set(g.cameras)\n        if len(cams)<=1:return "Single Camera"\n        if "left_pillar" in cams or "right_pillar" in cams or len(cams)>=5:return "Six Camera"\n        return "Four Camera"\n\n    def load_group(self,g:ClipGroup):\n',
+              'best layout helper')
+
+          replace_once(
+              'self.triggered_camera=self._infer_triggered_camera(g.event_info);self.clip_title.configure',
+              'self.triggered_camera=self._infer_triggered_camera(g.event_info);self.preview_layout.set(localized_choice(self.language,self._best_layout_for_group(g),LAYOUT_KEYS));self.clip_title.configure',
+              'adaptive layout')
+
+          replace_once(
+              'self.telemetry_badge.configure(text=self.t("reading").upper(),fg=WARN);self.status_var.set(self.t("opening_sync"))\n        try:',
+              'self.telemetry_badge.configure(text=self.t("reading").upper(),fg=WARN);self.status_var.set(self.t("opening_sync"));self.route.set_empty_text(self.t("reading"));self.route.set_data([],36.0);self.insights.configure(text=self.t("reading"));self.event_info.configure(text="");self._update_telemetry_panel(0.0)\n        try:',
+              'reset detail panels')
+
+          replace_once(
+              'self.timeline.set_data(self.samples,self.telemetry_fps,self.video_duration,self._event_relative_time(g)); self.timeline.set_trim(self.in_point,self.out_point); self.route.set_data(self.samples,self.telemetry_fps)',
+              'self.timeline.set_data(self.samples,self.telemetry_fps,self.video_duration,self._event_relative_time(g)); self.timeline.set_trim(self.in_point,self.out_point); self.route.set_empty_text(self.t("no_gps_route")); self.route.set_data(self.samples,self.telemetry_fps)',
+              'selected clip route message')
+
+          replace_once(
+              '        if not s:\n            self.speed_value.configure(text="—"); return\n',
+              '        if not s:\n            self.speed_value.configure(text="—"); self.speed_unit.configure(text="MPH" if self.settings.get("units","mph")=="mph" else "km/h"); self.state_value.configure(text="—",fg=MUTED)\n            for label in self.metric_labels.values():label.configure(text="—",fg=TEXT)\n            return\n',
+              'clear stale telemetry')
+
+          ui.write_text(text, encoding='utf-8')
+
+          build = Path('Build-Release.ps1')
+          b = build.read_text(encoding='utf-8')
+          needle='  --add-data "ffmpeg_bin;ffmpeg_bin" `\n'
+          if b.count(needle) != 2:
+              raise SystemExit('unexpected PyInstaller FFmpeg data count')
+          b=b.replace(needle, needle+'  --add-data "assets;assets" `\n')
+          build.write_text(b, encoding='utf-8')
+
+          nsi=Path('installer/Cammetry.nsi')
+          n=nsi.read_text(encoding='utf-8')
+          for old,new in [
+              ('InstallDir "$LOCALAPPDATA\\Programs\\${APP_DIR}"','InstallDir "$PROGRAMFILES64\\${APP_DIR}"'),
+              ('RequestExecutionLevel user','RequestExecutionLevel admin'),
+              ('!define MUI_LANGDLL_REGISTRY_ROOT HKCU','!define MUI_LANGDLL_REGISTRY_ROOT HKLM'),
+              ('WriteRegStr HKCU "${APP_REGKEY}"','WriteRegStr HKLM "${APP_REGKEY}"'),
+              ('WriteRegDWORD HKCU "${APP_REGKEY}"','WriteRegDWORD HKLM "${APP_REGKEY}"'),
+              ('DeleteRegKey HKCU "${APP_REGKEY}"','DeleteRegKey HKLM "${APP_REGKEY}"'),
+              ('DeleteRegKey HKCU "Software\\Cammetry"','DeleteRegKey HKLM "Software\\Cammetry"'),
+          ]:
+              if old not in n:
+                  raise SystemExit(f'missing NSIS pattern: {old}')
+              n=n.replace(old,new)
+          n=n.replace('Function .onInit\n  !insertmacro MUI_LANGDLL_DISPLAY\nFunctionEnd', 'Function .onInit\n  SetShellVarContext all\n  SetRegView 64\n  !insertmacro MUI_LANGDLL_DISPLAY\nFunctionEnd')
+          n=n.replace('Function un.onInit\n  !insertmacro MUI_UNGETLANGUAGE\nFunctionEnd', 'Function un.onInit\n  SetShellVarContext all\n  SetRegView 64\n  !insertmacro MUI_UNGETLANGUAGE\nFunctionEnd')
+          nsi.write_text(n, encoding='utf-8')
+          PY
+
+          python -m py_compile cammetry.py tts_core.py tts_export.py tts_locales.py tts_map.py tts_player.py tts_settings.py tts_ui.py
+          python -m unittest discover -s tests -p 'test_*.py' -v
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-v051-ui.yml
+          git add tts_ui.py Build-Release.ps1 installer/Cammetry.nsi
+          git commit -m "Fix Windows first-run UX for v0.5.1"
+          git push origin HEAD:main
