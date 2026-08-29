@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
 
 import cv2  # type: ignore
 
@@ -170,12 +170,26 @@ class MultiCameraPlayer:
             self.frame_cache[camera] = frame
         return frame
 
-    def get_frames(self, target_seconds: Optional[float] = None) -> Dict[str, object]:
+    def get_frames(
+        self,
+        target_seconds: Optional[float] = None,
+        cameras: Optional[Iterable[str]] = None,
+    ) -> Dict[str, object]:
+        """Return synchronized frames, optionally decoding only requested cameras.
+
+        Restricting decode to visible camera tiles avoids spending CPU time advancing
+        hidden streams while the user is in Single Camera or a reduced layout. A
+        hidden stream automatically seeks to the current timestamp the next time it
+        becomes visible, preserving synchronization without continuous decode cost.
+        """
         if target_seconds is None:
             target_seconds = self.tick()
+        requested = set(cameras) if cameras is not None else None
         frames: Dict[str, object] = {}
         for camera in CAMERA_ORDER:
             if camera not in self.captures:
+                continue
+            if requested is not None and camera not in requested:
                 continue
             frame = self._read_camera_frame(camera, target_seconds)
             if frame is not None:
