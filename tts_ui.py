@@ -305,6 +305,8 @@ class App(tk.Tk):
         style.configure("Dark.Treeview.Heading",background=CARD2,foreground=MUTED,relief="flat",font=("Segoe UI Semibold",8))
         style.configure("Dark.Horizontal.TProgressbar",troughcolor="#0c1218",background=ACCENT,bordercolor="#0c1218",lightcolor=ACCENT,darkcolor=ACCENT)
         style.configure("Dark.TCombobox",fieldbackground=CARD2,background=CARD2,foreground=TEXT,arrowcolor=TEXT,borderwidth=0)
+        style.configure("Dark.Vertical.TScrollbar",background=CARD2,troughcolor=PANEL,bordercolor=BORDER,arrowcolor=TEXT,relief="flat",width=12)
+        style.map("Dark.Vertical.TScrollbar",background=[("active","#2a3949"),("pressed","#33475a")])
         style.map("Dark.TCombobox",fieldbackground=[("readonly",CARD2)],background=[("readonly",CARD2)],foreground=[("readonly",TEXT)],selectbackground=[("readonly",CARD2)],selectforeground=[("readonly",TEXT)])
 
     def _build_ui(self):
@@ -341,7 +343,9 @@ class App(tk.Tk):
         self.event_tree=ttk.Treeview(self.left,columns=cols,show="headings",selectmode="browse",style="Dark.Treeview")
         self.event_tree.heading("time",text=self.t("recorded").upper()); self.event_tree.heading("type",text=self.t("type").upper()); self.event_tree.heading("trigger",text=self.t("trigger").upper()); self.event_tree.heading("cams",text=self.t("cams").upper())
         self.event_tree.column("time",width=132,anchor="w"); self.event_tree.column("type",width=58,anchor="center"); self.event_tree.column("trigger",width=105,anchor="w"); self.event_tree.column("cams",width=42,anchor="center")
-        self.event_tree.pack(fill="both",expand=True,padx=8,pady=(0,8)); self.event_tree.bind("<<TreeviewSelect>>",self.on_event_select)
+        treebox=tk.Frame(self.left,bg=PANEL); treebox.pack(fill="both",expand=True,padx=8,pady=(0,8))
+        event_scroll=ttk.Scrollbar(treebox,orient="vertical",command=self.event_tree.yview,style="Dark.Vertical.TScrollbar"); self.event_tree.configure(yscrollcommand=event_scroll.set)
+        event_scroll.pack(side="right",fill="y"); self.event_tree.pack(side="left",fill="both",expand=True); self.event_tree.bind("<<TreeviewSelect>>",self.on_event_select)
         foot=tk.Frame(self.left,bg=PANEL); foot.pack(fill="x",padx=8,pady=(0,8))
         flat_button(foot,self.t("delete"),self.delete_selected,danger=True).pack(side="left")
         flat_button(foot,self.t("scan"),self.scan).pack(side="right")
