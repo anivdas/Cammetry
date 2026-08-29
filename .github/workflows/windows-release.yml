@@ -1,13 +1,10 @@
-name: Build Windows Release
+name: Build Unsigned Windows Test Artifacts
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -33,19 +30,19 @@ jobs:
         shell: pwsh
         run: choco install nsis --no-progress -y
 
-      - name: Build Windows release
+      - name: Build unsigned Windows test artifacts
         shell: pwsh
         run: .\Build-Release.ps1
 
-      - name: Upload build artifacts
+      - name: Upload unsigned test artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Cammetry-Windows
+          name: Cammetry-Windows-UNSIGNED-TEST-ONLY
           path: release/*
 
-      - name: Publish GitHub release assets
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/*
-          generate_release_notes: true
+      - name: Signing notice
+        shell: pwsh
+        run: |
+          Write-Host 'These artifacts are intentionally unsigned test builds.'
+          Write-Host 'Do not attach them to an official GitHub Release.'
+          Write-Host 'Official Windows release tags use windows-signpath-release.yml after SignPath enrollment.'
