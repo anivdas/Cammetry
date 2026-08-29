@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import os
+import queue
 import subprocess
+import sys
 import tkinter as tk
+from pathlib import Path
+from tkinter import ttk
 from typing import Callable, Optional
 
 
@@ -15,6 +19,7 @@ ACCENT = "#3b82f6"
 DANGER = "#ef5b5b"
 BORDER = "#334155"
 GOOD = "#37c978"
+WARN = "#f6b73c"
 
 
 def _mix(hex_color: str, amount: float) -> str:
@@ -237,7 +242,7 @@ def upgrade_native_checkbuttons(root: tk.Misc) -> None:
 
 
 def install_runtime_polish() -> None:
-    """Install UI factory and hardware-encoder probe refinements before App builds."""
+    """Install final UI factories, export UX, and encoder probe refinements before App builds."""
     import tts_ui
     import tts_modern_ui
     import tts_release_ui
@@ -277,3 +282,196 @@ def install_runtime_polish() -> None:
         return ok
 
     tts_export_v051._encoder_smoke_test = robust_encoder_smoke_test
+
+    def build_inline_status(self):
+        foot = tk.Frame(self, bg=BG, height=50, highlightthickness=1, highlightbackground=BORDER)
+        foot.pack(fill="x", padx=12, pady=(0, 8))
+        foot.pack_propagate(False)
+
+        self._status_label = tk.Label(
+            foot, textvariable=self.status_var, bg=BG, fg=MUTED,
+            font=("Segoe UI", 8), anchor="w",
+        )
+        self._status_label.pack(side="left", fill="x", expand=True, padx=(10, 8))
+
+        self._export_inline = tk.Frame(foot, bg=BG)
+        self._export_inline_label = tk.Label(
+            self._export_inline, text="", bg=BG, fg=TEXT,
+            font=("Segoe UI Semibold", 8), anchor="e",
+        )
+        self._export_inline_label.pack(side="left", padx=(4, 8))
+        self._export_inline_progress = ttk.Progressbar(
+            self._export_inline,
+            style="Dark.Horizontal.TProgressbar",
+            mode="determinate",
+            maximum=100,
+            length=190,
+        )
+        self.progress = self._export_inline_progress
+
+        self._export_open_button = flat_button(self._export_inline, "Open file", self._open_last_export)
+        self._export_reveal_button = flat_button(self._export_inline, "Show in folder", self._reveal_last_export)
+        self._export_diag_button = flat_button(self._export_inline, "Diagnostics", self.open_diagnostics)
+        self._export_dismiss_button = flat_button(self._export_inline, "Dismiss", self._dismiss_inline_export)
+        self.export_toast = None
+        self.export_toast_progress = None
+        self.export_toast_label = None
+
+    def set_inline_export_state(self, state: str, text: str = "", frac: float = 0.0):
+        frame = getattr(self, "_export_inline", None)
+        if frame is None:
+            return
+        for widget in (
+            getattr(self, "_export_inline_progress", None),
+            getattr(self, "_export_open_button", None),
+            getattr(self, "_export_reveal_button", None),
+            getattr(self, "_export_diag_button", None),
+            getattr(self, "_export_dismiss_button", None),
+        ):
+            try:
+                widget.pack_forget()
+            except Exception:
+                pass
+        try:
+            frame.pack_forget()
+        except Exception:
+            pass
+        if state == "idle":
+            return
+
+        frame.pack(side="right", fill="y", padx=(4, 8), pady=5)
+        label = getattr(self, "_export_inline_label", None)
+        if label is not None:
+            fg = GOOD if state == "success" else DANGER if state == "error" else TEXT
+            label.configure(text=text, fg=fg)
+
+        if state == "progress":
+            progress = self._export_inline_progress
+            progress["value"] = max(0, min(100, float(frac) * 100))
+            progress.pack(side="left", padx=(0, 6), pady=8)
+        elif state == "success":
+            self._export_open_button.pack(side="left", padx=2)
+            self._export_reveal_button.pack(side="left", padx=2)
+            self._export_dismiss_button.pack(side="left", padx=(4, 0))
+        elif state == "error":
+            if hasattr(self, "open_diagnostics"):
+                self._export_diag_button.pack(side="left", padx=2)
+            self._export_dismiss_button.pack(side="left", padx=(4, 0))
+
+    def dismiss_inline_export(self):
+        self._set_inline_export_state("idle")
+
+    def open_last_export(self):
+        path = Path(getattr(self, "last_output", "") or "")
+        if not path.exists():
+            self.status_var.set("Exported file is no longer available at its saved location.")
+            return
+        try:
+            if os.name == "nt":
+                os.startfile(str(path))  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(path)])
+            else:
+                subprocess.Popen(["xdg-open", str(path)])
+        except Exception as exc:
+            self.status_var.set(f"Could not open exported file: {exc}")
+
+    def reveal_last_export(self):
+        path = Path(getattr(self, "last_output", "") or "")
+        if not path.exists():
+            self.status_var.set("Exported file is no longer available at its saved location.")
+            return
+        try:
+            if os.name == "nt":
+                subprocess.Popen(["explorer.exe", "/select,", str(path)])
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", "-R", str(path)])
+            else:
+                subprocess.Popen(["xdg-open", str(path.parent)])
+        except Exception as exc:
+            self.status_var.set(f"Could not reveal exported file: {exc}")
+
+    def show_export_inline(self):
+        self._set_inline_export_state("progress", "Preparing export…", 0.0)
+
+    def update_export_inline(self, frac, text):
+        pct = max(0, min(100, float(frac) * 100))
+        self._set_inline_export_state("progress", f"Exporting  {pct:.0f}%", float(frac))
+
+    def finish_export_inline(self, success, text):
+        if success:
+            self._set_inline_export_state("success", text or "Export complete")
+        else:
+            self._set_inline_export_state("error", text or "Export failed")
+
+    def inline_poll_worker(self):
+        try:
+            while True:
+                kind, payload = self._worker_q.get_nowait()
+                if kind == "loaded":
+                    token, group, samples, info = payload
+                    if token != self._load_token:
+                        continue
+                    self.samples = samples
+                    self.telemetry_fps = info.fps if info else 36.0
+                    if info and info.duration > 0:
+                        self.video_duration = info.duration
+                        self.player.duration = info.duration
+                    self.timeline.set_data(
+                        self.samples,
+                        self.telemetry_fps,
+                        self.video_duration,
+                        self._event_relative_time(group),
+                    )
+                    self.timeline.set_trim(self.in_point, self.out_point)
+                    self.route.set_empty_text(self.t("no_gps_route"))
+                    self.route.set_data(self.samples, self.telemetry_fps)
+                    if samples:
+                        self.telemetry_badge.configure(
+                            text=f"{len(samples)} {self.t('samples').upper()}", fg=GOOD
+                        )
+                        self.status_var.set(
+                            self.tf("telemetry_synced", count=len(samples), fps=self.telemetry_fps)
+                        )
+                    else:
+                        self.telemetry_badge.configure(text=self.t("no_sei").upper(), fg=WARN)
+                        self.status_var.set(self.t("no_telemetry"))
+                    self._update_insights()
+                    self._update_event_info()
+                    self.seek(self.player.position)
+                elif kind == "error":
+                    token, msg = payload
+                    if token == self._load_token:
+                        self.telemetry_badge.configure(text=self.t("error").upper(), fg=DANGER)
+                        self.status_var.set(msg)
+                elif kind == "export_progress":
+                    frac, _msg = payload
+                    self.progress["value"] = float(frac) * 100
+                    self.status_var.set(self.tf("exporting", percent=float(frac) * 100))
+                    self._update_export_toast(frac, self.status_var.get())
+                elif kind == "export_done":
+                    output, encoder = payload
+                    self.progress["value"] = 100
+                    self.last_output = Path(output)
+                    self.status_var.set(self.tf("export_complete", encoder=encoder, path=output))
+                    self._finish_export_toast(True, f"Export complete  •  {encoder}")
+                elif kind == "export_error":
+                    self.progress["value"] = 0
+                    self.status_var.set(self.t("export_failed"))
+                    self._finish_export_toast(False, "Export failed")
+        except queue.Empty:
+            pass
+        try:
+            self.after(100, self._poll_worker)
+        except tk.TclError:
+            pass
+
+    tts_ui.App._build_bottom = build_inline_status
+    tts_ui.App._set_inline_export_state = set_inline_export_state
+    tts_ui.App._dismiss_inline_export = dismiss_inline_export
+    tts_ui.App._open_last_export = open_last_export
+    tts_ui.App._reveal_last_export = reveal_last_export
+    tts_ui.App._show_export_toast = show_export_inline
+    tts_ui.App._update_export_toast = update_export_inline
+    tts_ui.App._finish_export_toast = finish_export_inline
+    tts_ui.App._poll_worker = inline_poll_worker
