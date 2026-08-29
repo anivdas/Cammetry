@@ -1,6 +1,7 @@
 Unicode true
 
 !include "MUI2.nsh"
+!include "WinMessages.nsh"
 
 !define APP_NAME "Cammetry"
 !define APP_VERSION "0.5.0"
@@ -62,9 +63,65 @@ VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Cammetry contributors"
 
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
+; Close a currently installed Cammetry instance before replacing files.
+; We first ask the visible application to close normally, then use taskkill only
+; as a safety net so upgrades cannot leave locked files behind.
+Function EnsureCammetryClosed
+  ReadRegStr $0 HKLM "${APP_REGKEY}" "DisplayVersion"
+  StrCmp $0 "" ensure_force_cleanup
+  FindWindow $1 "" "${APP_NAME} $0"
+  StrCmp $1 0 ensure_force_cleanup
+
+  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+    "${APP_NAME} $0 is currently running.$\r$\n$\r$\nIt must be closed before setup can continue. Click OK to close it now. Any active playback or export will stop." \
+    IDOK ensure_close_window IDCANCEL ensure_abort
+
+ensure_close_window:
+  SendMessage $1 ${WM_CLOSE} 0 0
+  Sleep 1200
+
+ensure_force_cleanup:
+  ; Harmless when the process is not running. This also catches a hidden or
+  ; orphaned Cammetry process that no longer has a normal main window.
+  nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /F /T /IM "${APP_EXE}"'
+  Pop $2
+  Pop $3
+  Sleep 350
+  Return
+
+ensure_abort:
+  Abort
+FunctionEnd
+
+; Uninstaller equivalent. The exact current-version title lets us warn the user
+; before closing the app, then taskkill guarantees the install tree is unlocked.
+Function un.EnsureCammetryClosed
+  FindWindow $0 "" "${APP_NAME} ${APP_VERSION}"
+  StrCmp $0 0 un_force_cleanup
+
+  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+    "${APP_NAME} is currently running.$\r$\n$\r$\nIt must be closed before uninstalling. Click OK to close it now. Any active playback or export will stop." \
+    IDOK un_close_window IDCANCEL un_abort
+
+un_close_window:
+  SendMessage $0 ${WM_CLOSE} 0 0
+  Sleep 1200
+
+un_force_cleanup:
+  nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /F /T /IM "${APP_EXE}"'
+  Pop $1
+  Pop $2
+  Sleep 350
+  Return
+
+un_abort:
+  Abort
+FunctionEnd
+
 Function .onInit
   SetShellVarContext all
   SetRegView 64
+  Call EnsureCammetryClosed
   !insertmacro MUI_LANGDLL_DISPLAY
 FunctionEnd
 
@@ -72,6 +129,7 @@ Function un.onInit
   SetShellVarContext all
   SetRegView 64
   !insertmacro MUI_UNGETLANGUAGE
+  Call un.EnsureCammetryClosed
 FunctionEnd
 
 Section "Cammetry" SecMain
@@ -113,5 +171,8 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\${APP_DIR}"
   DeleteRegKey HKLM "${APP_REGKEY}"
   DeleteRegKey HKLM "Software\Cammetry"
-  RMDir /r "$INSTDIR"
+
+  ; The running app has already been closed in un.onInit. Remove immediately;
+  ; /REBOOTOK is only a final safety net for an unexpected external file lock.
+  RMDir /r /REBOOTOK "$INSTDIR"
 SectionEnd
