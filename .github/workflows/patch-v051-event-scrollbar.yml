@@ -1,0 +1,50 @@
+name: One-time v0.5.1 event scrollbar patch
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add visible event-list scrollbar
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ui = Path('tts_ui.py')
+          text = ui.read_text(encoding='utf-8')
+
+          old_style = '        style.configure("Dark.TCombobox",fieldbackground=CARD2,background=CARD2,foreground=TEXT,arrowcolor=TEXT,borderwidth=0)\n'
+          new_style = old_style + '        style.configure("Dark.Vertical.TScrollbar",background=CARD2,troughcolor=PANEL,bordercolor=BORDER,arrowcolor=TEXT,relief="flat",width=12)\n        style.map("Dark.Vertical.TScrollbar",background=[("active","#2a3949"),("pressed","#33475a")])\n'
+          if old_style not in text:
+              raise SystemExit('missing scrollbar style insertion point')
+          text = text.replace(old_style, new_style, 1)
+
+          old_tree = '        self.event_tree.pack(fill="both",expand=True,padx=8,pady=(0,8)); self.event_tree.bind("<<TreeviewSelect>>",self.on_event_select)\n'
+          new_tree = '        treebox=tk.Frame(self.left,bg=PANEL); treebox.pack(fill="both",expand=True,padx=8,pady=(0,8))\n        event_scroll=ttk.Scrollbar(treebox,orient="vertical",command=self.event_tree.yview,style="Dark.Vertical.TScrollbar"); self.event_tree.configure(yscrollcommand=event_scroll.set)\n        event_scroll.pack(side="right",fill="y"); self.event_tree.pack(side="left",fill="both",expand=True); self.event_tree.bind("<<TreeviewSelect>>",self.on_event_select)\n'
+          if old_tree not in text:
+              raise SystemExit('missing event tree pack insertion point')
+          text = text.replace(old_tree, new_tree, 1)
+
+          ui.write_text(text, encoding='utf-8')
+          PY
+
+          python -m py_compile tts_ui.py
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-v051-event-scrollbar.yml
+          git add tts_ui.py
+          git commit -m "Add visible event list scrollbar"
+          git push origin HEAD:main
