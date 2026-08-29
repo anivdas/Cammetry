@@ -35,7 +35,7 @@ class ReleaseGateTests(unittest.TestCase):
     def test_release_entrypoint_uses_latest_beta_ui_layer(self):
         text = (ROOT / "cammetry.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "0.5.1"', text)
-        self.assertIn("from tts_beta_ui import App", text)
+        self.assertIn("from tts_hotfix_ui import App", text)
 
     def test_event_browser_tree_and_scrollbar_share_the_same_parent(self):
         text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")
@@ -74,6 +74,17 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertNotIn("messagebox.showinfo", text)
         self.assertNotIn("messagebox.showerror", text)
 
+    def test_export_has_watchdog_phase_progress_and_cancel(self):
+        guard = (ROOT / "tts_export_guard.py").read_text(encoding="utf-8")
+        ui = (ROOT / "tts_hotfix_ui.py").read_text(encoding="utf-8")
+        self.assertIn("no encoding timestamp within 25 seconds", guard)
+        self.assertIn("made no progress for 45 seconds", guard)
+        self.assertIn('progress_cb(0.03, "Checking encoder")', guard)
+        self.assertIn('progress_cb(0.08, "Preparing map overlay")', guard)
+        self.assertIn("tts_release_ui.export_video = guarded_export_video", guard)
+        self.assertIn('"Cancel export"', ui)
+        self.assertIn("cancel_active_export()", ui)
+
     def test_hud_uses_fixed_positions_and_nonoverlapping_intervals(self):
         text = (ROOT / "tts_hud.py").read_text(encoding="utf-8")
         self.assertIn("\\\\pos(", text)
@@ -98,7 +109,10 @@ class ReleaseGateTests(unittest.TestCase):
 
     def test_ci_compiles_all_beta_layers(self):
         text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        for module in ("tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py", "tts_beta_ui.py"):
+        for module in (
+            "tts_ui_polish.py", "tts_hud.py", "tts_map_export.py", "tts_next_ui.py",
+            "tts_beta_ui.py", "tts_export_guard.py", "tts_hotfix_ui.py",
+        ):
             self.assertIn(module, text)
 
 
