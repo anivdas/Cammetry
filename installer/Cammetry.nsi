@@ -63,52 +63,90 @@ VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Cammetry contributors"
 
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
+; Check the process image rather than relying on the window title. This works
+; even if a clip changes the caption or setup is upgrading an older Cammetry.
 Function EnsureCammetryClosed
-  ReadRegStr $0 HKLM "${APP_REGKEY}" "DisplayVersion"
-  StrCmp $0 "" ensure_force_cleanup
-  FindWindow $1 "" "${APP_NAME} $0"
-  StrCmp $1 0 ensure_force_cleanup
+ensure_check_process:
+  nsExec::ExecToStack '"$SYSDIR\tasklist.exe" /FI "IMAGENAME eq ${APP_EXE}" /NH'
+  Pop $0
+  Pop $1
+  StrCpy $2 $1 12
+  StrCmp $2 "${APP_EXE}" ensure_running ensure_done
 
+ensure_running:
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-    "${APP_NAME} $0 is currently running.$\r$\n$\r$\nIt must be closed before setup can continue. Click OK to close it now. Any active playback or export will stop." \
-    IDOK ensure_close_window IDCANCEL ensure_abort
+    "${APP_NAME} is currently running.$\r$\n$\r$\nIt must be closed before setup can continue. Click OK to close it now. Any active playback or export will stop." \
+    IDOK ensure_close IDCANCEL ensure_abort
 
-ensure_close_window:
-  SendMessage $1 ${WM_CLOSE} 0 0
-  Sleep 1200
+ensure_close:
+  FindWindow $3 "" "${APP_NAME} ${APP_VERSION}"
+  StrCmp $3 0 +3
+  SendMessage $3 ${WM_CLOSE} 0 0
+  Sleep 1000
+  nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /T /IM "${APP_EXE}"'
+  Pop $4
+  Pop $5
+  Sleep 700
+  nsExec::ExecToStack '"$SYSDIR\tasklist.exe" /FI "IMAGENAME eq ${APP_EXE}" /NH'
+  Pop $4
+  Pop $5
+  StrCpy $6 $5 12
+  StrCmp $6 "${APP_EXE}" ensure_force ensure_done
 
-ensure_force_cleanup:
+ensure_force:
   nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /F /T /IM "${APP_EXE}"'
-  Pop $2
-  Pop $3
+  Pop $4
+  Pop $5
   Sleep 350
-  Return
+  Goto ensure_check_process
 
 ensure_abort:
   Abort
+
+ensure_done:
+  Return
 FunctionEnd
 
 Function un.EnsureCammetryClosed
-  FindWindow $0 "" "${APP_NAME} ${APP_VERSION}"
-  StrCmp $0 0 un_force_cleanup
+un_check_process:
+  nsExec::ExecToStack '"$SYSDIR\tasklist.exe" /FI "IMAGENAME eq ${APP_EXE}" /NH'
+  Pop $0
+  Pop $1
+  StrCpy $2 $1 12
+  StrCmp $2 "${APP_EXE}" un_running un_done
 
+un_running:
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
     "${APP_NAME} is currently running.$\r$\n$\r$\nIt must be closed before uninstalling. Click OK to close it now. Any active playback or export will stop." \
-    IDOK un_close_window IDCANCEL un_abort
+    IDOK un_close IDCANCEL un_abort
 
-un_close_window:
-  SendMessage $0 ${WM_CLOSE} 0 0
-  Sleep 1200
+un_close:
+  FindWindow $3 "" "${APP_NAME} ${APP_VERSION}"
+  StrCmp $3 0 +3
+  SendMessage $3 ${WM_CLOSE} 0 0
+  Sleep 1000
+  nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /T /IM "${APP_EXE}"'
+  Pop $4
+  Pop $5
+  Sleep 700
+  nsExec::ExecToStack '"$SYSDIR\tasklist.exe" /FI "IMAGENAME eq ${APP_EXE}" /NH'
+  Pop $4
+  Pop $5
+  StrCpy $6 $5 12
+  StrCmp $6 "${APP_EXE}" un_force un_done
 
-un_force_cleanup:
+un_force:
   nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /F /T /IM "${APP_EXE}"'
-  Pop $1
-  Pop $2
+  Pop $4
+  Pop $5
   Sleep 350
-  Return
+  Goto un_check_process
 
 un_abort:
   Abort
+
+un_done:
+  Return
 FunctionEnd
 
 Function .onInit
@@ -149,8 +187,35 @@ Section /o "Desktop shortcut" SecDesktop
   CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
 SectionEnd
 
+; MUI localizes the installer chrome. Keep these two component descriptions as
+; an explicit English fallback in every bundled installer language so no page
+; has a missing string and makensis /WX remains warning-free.
 LangString DESC_SecMain ${LANG_ENGLISH} "Installs Cammetry and its bundled local video-processing components."
 LangString DESC_SecDesktop ${LANG_ENGLISH} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_SPANISH} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_SPANISH} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_FRENCH} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_FRENCH} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_GERMAN} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_GERMAN} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_SIMPCHINESE} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_SIMPCHINESE} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_JAPANESE} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_JAPANESE} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_KOREAN} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_KOREAN} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_PORTUGUESE} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_PORTUGUESE} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_RUSSIAN} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_RUSSIAN} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_ITALIAN} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_ITALIAN} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_DUTCH} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_DUTCH} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_POLISH} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_POLISH} "Creates a shortcut on the desktop."
+LangString DESC_SecMain ${LANG_TURKISH} "Installs Cammetry and its bundled local video-processing components."
+LangString DESC_SecDesktop ${LANG_TURKISH} "Creates a shortcut on the desktop."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(DESC_SecMain)
