@@ -5,16 +5,21 @@ import tkinter as tk
 from tts_core import CAMERA_WALL_ORDER
 from tts_locales import camera_label
 from tts_next_ui import NextApp
+from tts_transport_polish import TransportSeekButton, install_button_interaction_polish
 from tts_ui import ACCENT, BG, BORDER, CARD, CARD2, GOOD, MUTED, PANEL, TEXT
-from tts_ui_polish import flat_button
+from tts_ui_polish import FluentButton, flat_button
 
 
 class BetaApp(NextApp):
     """Installed-beta UX fixes that keep transient tools inside the main window."""
 
     def __init__(self):
+        # Install interaction polish before any shared FluentButton instances are built.
+        install_button_interaction_polish()
         self._tools_overlay = None
         self._vehicle_overlay = None
+        self._seek_back_button = None
+        self._seek_forward_button = None
         super().__init__()
 
     def _close_overlay(self, attr: str) -> None:
@@ -25,6 +30,55 @@ class BetaApp(NextApp):
             except Exception:
                 pass
         setattr(self, attr, None)
+
+    # ------------------------------------------------------------------
+    # Main transport: dedicated media-style seek controls.
+    # ------------------------------------------------------------------
+    def _build_center(self):
+        super()._build_center()
+        self._upgrade_seek_controls()
+
+    def _upgrade_seek_controls(self) -> None:
+        seek_seconds = max(1, int(self.settings.get("seek_seconds", 10)))
+        play = getattr(self, "play_button", None)
+        if play is None:
+            return
+        row = play.master
+        old_back = None
+        old_forward = None
+        for child in list(row.winfo_children()):
+            if child is play:
+                continue
+            try:
+                label = str(child.cget("text"))
+            except Exception:
+                continue
+            if label == f"-{seek_seconds}s":
+                old_back = child
+            elif label == f"+{seek_seconds}s":
+                old_forward = child
+
+        if old_back is not None:
+            old_back.destroy()
+        if old_forward is not None:
+            old_forward.destroy()
+
+        self._seek_back_button = TransportSeekButton(
+            row, seek_seconds, -1, lambda: self.skip(-seek_seconds)
+        )
+        self._seek_forward_button = TransportSeekButton(
+            row, seek_seconds, 1, lambda: self.skip(seek_seconds)
+        )
+        self._seek_back_button.pack(side="left", padx=(10, 3), before=play)
+        self._seek_forward_button.pack(side="left", padx=(3, 3), after=play)
+
+        # Keep release-state logic aware of the transport buttons.
+        if hasattr(self, "_clip_action_buttons"):
+            self._clip_action_buttons.extend([self._seek_back_button, self._seek_forward_button])
+        enabled = bool(getattr(self, "selected_group", None))
+        state = "normal" if enabled else "disabled"
+        self._seek_back_button.configure(state=state)
+        self._seek_forward_button.configure(state=state)
 
     # ------------------------------------------------------------------
     # Tools: one in-app flyout, never an OS-level floating window.
