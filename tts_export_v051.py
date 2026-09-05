@@ -52,6 +52,7 @@ class ExportOptions:
     timestamp_format: str = "%Y-%m-%d %I:%M:%S %p"
     show_minimap: bool = False
     show_gps_text: bool = False
+    strip_metadata: bool = True
     apply_image_adjustments: bool = True
     exposure: float = 0.0
     contrast: float = 1.0
@@ -324,6 +325,8 @@ def _build_command(ffmpeg: str, group: ClipGroup, cameras: List[str], start: flo
         current = "final"
     cmd.extend(["-filter_complex", ";".join(filters), "-map", f"[{current}]", "-an"])
     cmd.extend(_codec_args(codec, options.quality))
+    if options.strip_metadata:
+        cmd.extend(["-map_metadata", "-1", "-map_chapters", "-1"])
     cmd.extend(["-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)])
     return cmd
 

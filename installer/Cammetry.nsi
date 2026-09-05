@@ -4,7 +4,7 @@ Unicode true
 !include "WinMessages.nsh"
 
 !define APP_NAME "Cammetry"
-!define APP_VERSION "0.5.1"
+!define APP_VERSION "0.6.0-dev"
 !define APP_EXE "Cammetry.exe"
 !define APP_DIR "Cammetry"
 !define APP_REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cammetry"
@@ -19,7 +19,7 @@ Icon "..\assets\app.ico"
 UninstallIcon "..\assets\app.ico"
 BrandingText "Cammetry - free open source"
 
-VIProductVersion "0.5.1.0"
+VIProductVersion "0.6.0.0"
 VIAddVersionKey "ProductName" "${APP_NAME}"
 VIAddVersionKey "ProductVersion" "${APP_VERSION}"
 VIAddVersionKey "FileVersion" "${APP_VERSION}"

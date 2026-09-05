@@ -32,10 +32,10 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertIn("Cammetry-Portable-ZIP-v0.5.1-UNSIGNED-BETA", text)
         self.assertNotIn("name: Cammetry-Windows-v0.5.1-UNSIGNED-BETA", text)
 
-    def test_release_entrypoint_uses_latest_beta_ui_layer(self):
+    def test_development_entrypoint_uses_v060_ui_layer(self):
         text = (ROOT / "cammetry.py").read_text(encoding="utf-8")
-        self.assertIn('APP_VERSION = "0.5.1"', text)
-        self.assertIn("from tts_hotfix_ui import App", text)
+        self.assertIn('APP_VERSION = "0.6.0-dev"', text)
+        self.assertIn("from tts_v060_ui import App", text)
 
     def test_event_browser_tree_and_scrollbar_share_the_same_parent(self):
         text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")

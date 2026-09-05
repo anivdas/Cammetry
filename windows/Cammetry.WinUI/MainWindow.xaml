@@ -1,0 +1,39 @@
+<Window
+    x:Class="Cammetry.WinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Cammetry">
+    <Grid>
+        <NavigationView x:Name="Navigation" PaneDisplayMode="LeftCompact" IsSettingsVisible="True" SelectionChanged="Navigation_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Home" Tag="home"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="Viewer" Tag="viewer"><NavigationViewItem.Icon><SymbolIcon Symbol="Video" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="Library" Tag="library"><NavigationViewItem.Icon><SymbolIcon Symbol="Library" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="Incidents" Tag="incidents"><NavigationViewItem.Icon><SymbolIcon Symbol="Document" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="Health" Tag="health"><NavigationViewItem.Icon><SymbolIcon Symbol="Repair" /></NavigationViewItem.Icon></NavigationViewItem>
+            </NavigationView.MenuItems>
+            <ScrollViewer>
+                <StackPanel x:Name="ContentPanel" MaxWidth="1040" HorizontalAlignment="Stretch" Spacing="16" Padding="32">
+                    <TextBlock Text="CAMMETRY" Style="{StaticResource TitleTextBlockStyle}" />
+                    <TextBlock Text="Local-first camera and telemetry workspace" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <InfoBar x:Name="CoreStatus" IsOpen="True" Severity="Informational" Title="Starting local Cammetry Core…" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Open TeslaCam drive" Click="OpenDrive_Click" HorizontalAlignment="Stretch" />
+                        <Button Grid.Column="1" Content="Open folder" Click="OpenFolder_Click" HorizontalAlignment="Stretch" />
+                        <Button Grid.Column="2" Content="Open library" Click="OpenLibrary_Click" HorizontalAlignment="Stretch" />
+                    </Grid>
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="20">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Native Windows workspace" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="This WinUI 3 shell uses the Windows App SDK and communicates with the existing Cammetry media engine only through a local process bridge. No network listener or account is required." TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </NavigationView>
+    </Grid>
+</Window>

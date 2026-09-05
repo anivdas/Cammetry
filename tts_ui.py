@@ -125,11 +125,12 @@ class CameraTile(tk.Frame):
 class TimelineCanvas(tk.Canvas):
     def __init__(self,parent,seek_cb,language:str="English"):
         super().__init__(parent,height=72,bg="#0b1118",highlightthickness=1,highlightbackground=BORDER,cursor="hand2")
-        self.language=language; self.samples=[]; self.fps=36.0; self.duration=0.0; self.position=0.0; self.in_point=0.0; self.out_point=0.0; self.event_time=None; self.seek_cb=seek_cb
+        self.language=language; self.samples=[]; self.fps=36.0; self.duration=0.0; self.position=0.0; self.in_point=0.0; self.out_point=0.0; self.event_time=None; self.review_events=[]; self.seek_cb=seek_cb
         self.bind("<Button-1>",self._seek_event); self.bind("<B1-Motion>",self._seek_event); self.bind("<Configure>",lambda _e:self.redraw())
     def set_data(self,samples,fps,duration,event_time=None): self.samples=samples or []; self.fps=fps or 36.0; self.duration=max(0.0,duration); self.event_time=event_time; self.redraw()
     def set_position(self,pos): self.position=pos; self.redraw(position_only=False)
     def set_trim(self,in_point,out_point): self.in_point,self.out_point=in_point,out_point; self.redraw()
+    def set_review_events(self,events): self.review_events=list(events or []); self.redraw()
     def _seek_event(self,event):
         if self.duration<=0:return
         x=max(0,min(self.winfo_width(),event.x)); self.seek_cb(x/max(1,self.winfo_width())*self.duration)
@@ -146,6 +147,12 @@ class TimelineCanvas(tk.Canvas):
                 elif s.blinker_on_left or s.blinker_on_right:self.create_line(x,y0,x,y0+6,fill=WARN)
         if self.event_time is not None and 0<=self.event_time<=self.duration:
             ex=self.event_time/self.duration*w; self.create_line(ex,0,ex,h,fill=WARN,width=2); self.create_text(ex+4,4,text=tr(self.language,"event_marker"),fill=WARN,anchor="nw",font=("Segoe UI Semibold",7))
+        for marker in self.review_events:
+            seconds=float(getattr(marker,"seconds",-1.0)); severity=int(getattr(marker,"severity",1))
+            if 0<=seconds<=self.duration:
+                mx=seconds/self.duration*w; color=DANGER if severity>=3 else WARN if severity==2 else "#73b7ff"
+                self.create_line(mx,y0-2,mx,y1+2,fill=color,width=1)
+                self.create_polygon(mx-3,y0-3,mx+3,y0-3,mx,y0+2,fill=color,outline="")
         if self.out_point>self.in_point:
             x0=self.in_point/self.duration*w; x1=self.out_point/self.duration*w; self.create_rectangle(x0,0,x1,h,outline=GOOD,width=1); self.create_text(x0+3,h-3,text=tr(self.language,"in_marker"),fill=GOOD,anchor="sw",font=("Segoe UI Semibold",7)); self.create_text(x1-3,h-3,text=tr(self.language,"out_marker"),fill=DANGER,anchor="se",font=("Segoe UI Semibold",7))
         px=max(0,min(w,self.position/self.duration*w)); self.create_line(px,0,px,h,fill="#ffffff",width=2)

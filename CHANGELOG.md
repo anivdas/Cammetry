@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.6.0 Development
+
+### Review and reliability
+- Added a Compatibility Center covering FFmpeg, runtime-tested encoders, camera availability, video probing, telemetry, free space, and estimated export size.
+- Added privacy-safe diagnostic output that omits filenames, paths, footage, and GPS coordinates.
+- Exported MP4 files now strip inherited container metadata and chapters by default.
+
+### Continuous events and local intelligence
+- Added a virtual event-sequence model for adjacent TeslaCam segments and continuous segment-to-segment playback.
+- Added Previous/Next segment controls and an optional Continuous Event preference.
+- Added deterministic local review markers for hard braking, rapid acceleration, high G-force, brake application, signal changes, and driver-assistance transitions.
+
+### Library and incidents
+- Added a local SQLite clip library with search, titles, notes, tags, favorites, reviewed state, and timestamped bookmarks.
+- Added verified read-only import primitives using SHA-256 and atomic copies.
+- Added an Incident Workspace that creates human-readable reports, JSON manifests, source hashes, bookmarks, local review markers, optional verified source copies, and ZIP packages.
+
+### First-run and privacy UX
+- Replaced the first-run notice with a welcome workflow for detected drives, folders, and the Local Library.
+- Added a one-click Privacy Export preset that removes timestamps, maps, coordinate text, and MP4 metadata.
+- Added optional local OpenCV face/license-plate region suggestions followed by mandatory user review in the existing privacy-zone editor.
+
+### Native Windows UI migration
+- Added an actual C#/XAML WinUI 3 shell based on Windows App SDK 2.4 and .NET 10.
+- Added a local stdin/stdout JSON bridge so the native shell can reuse the tested Python core without opening a network listener.
+- Added a Windows CI build gate and documented the criteria that must pass before WinUI replaces the existing Windows interface.
+
 ## 0.5.1 Beta
 
 Consolidated Windows beta based on hands-on testing of v0.5.0 against a real TeslaCam library.

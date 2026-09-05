@@ -35,6 +35,8 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "support_endpoint": "",
     "share_endpoint": "",
     "privacy_notice_seen": False,
+    "onboarding_completed": False,
+    "continuous_event_playback": True,
 }
 
 

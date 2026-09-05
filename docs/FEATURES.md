@@ -2,6 +2,17 @@
 
 Cammetry is a local-first desktop TeslaCam viewer, telemetry explorer, and exporter. The application is independently developed and is not affiliated with Tesla, Inc.
 
+## 0.6 development features
+
+- Continuous event sequences with automatic playback across adjacent source segments.
+- Local Library with search, titles, notes, tags, favorites, reviewed state, and bookmarks.
+- Local telemetry review markers for braking, acceleration, G-force, signals, and driver-assistance transitions.
+- Incident Workspace with source hashes, manifests, HTML reports, optional verified source copies, and ZIP packaging.
+- Compatibility Center with camera, decoder, encoder, telemetry, storage, and export-size checks.
+- Privacy Export presets, MP4 metadata removal, and optional local face/plate region suggestions for manual review.
+- A guided first-run workflow focused on opening a detected drive, folder, or local library.
+- A native WinUI 3 migration shell for Windows, connected to the local core without a network listener.
+
 ## Clip browsing and events
 
 - Open a normal TeslaCam root or an arbitrary folder containing compatible camera files.
