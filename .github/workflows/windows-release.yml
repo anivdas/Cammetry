@@ -101,9 +101,9 @@ jobs:
           path: release/Cammetry-Portable-v0.5.1.zip
           if-no-files-found: error
 
-      - name: Signing notice
+      - name: Unsigned-build notice
         shell: pwsh
         run: |
           Write-Host 'These artifacts are intentionally unsigned v0.5.1 beta test builds.'
           Write-Host 'Do not attach them to an official GitHub Release.'
-          Write-Host 'Official Windows release tags use windows-signpath-release.yml after SignPath enrollment.'
+          Write-Host 'Only publish these files when the release page clearly identifies them as unsigned.'

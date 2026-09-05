@@ -43,7 +43,7 @@ Consolidated Windows beta based on hands-on testing of v0.5.0 against a real Tes
 - Bundles the Cammetry icon as a runtime asset for the Windows title bar.
 - Windows Setup defaults to `Program Files\Cammetry` with conventional per-machine UAC installation and system-wide Start Menu registration.
 - Setup and Uninstall now detect a running Cammetry instance, ask to close it, close/terminate any remaining process if necessary, and only then replace/remove the install tree. This prevents partial uninstalls caused by locked application files.
-- Added SignPath Foundation code-signing policy and a fail-closed signed Windows release workflow for use after project enrollment is approved.
+- Documented the Windows code-signing policy and release verification requirements.
 
 ### Notes
 - Cammetry remains free and open source, local-first by default, and unaffiliated with or endorsed by Tesla, Inc.

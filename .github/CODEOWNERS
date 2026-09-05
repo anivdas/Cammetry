@@ -3,7 +3,6 @@
 
 # Release security-sensitive files
 /.github/workflows/ @anivdas
-/.signpath/ @anivdas
 /CODE_SIGNING_POLICY.md @anivdas
 /Build-Release.ps1 @anivdas
 /installer/ @anivdas

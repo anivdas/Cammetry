@@ -45,13 +45,11 @@ For normal users, download the latest installer from the [Cammetry Releases](htt
 
 A portable executable/ZIP is also produced for users who prefer not to install the application.
 
-Cammetry v0.5.0 was the first public pre-release and predates project code-signing enrollment, so its Windows executables are unsigned. Future official Windows releases are intended to be published only after the SignPath release-signing path is active and the returned signatures have been verified.
+Cammetry v0.5.0 and v0.5.1 Beta are unsigned Windows pre-releases. Windows may display an unknown-publisher or SmartScreen warning; verify that downloads came from the official Cammetry Releases page before running them.
 
 ## Code signing policy
 
-**Free code signing provided by SignPath.io, certificate by SignPath Foundation.**
-
-Cammetry's Windows signing design uses GitHub-hosted build runners, SignPath origin verification, manual release approval, and Authenticode verification before signed binaries are published. Cammetry-owned executables are signed; bundled third-party open-source programs keep their own upstream identity and licenses.
+Cammetry's current Windows pre-releases are unsigned. A future signing provider may be added after its identity-validation and technical requirements are met. Any signing workflow must use controlled builds and verify Authenticode signatures before signed binaries are published. Cammetry-owned executables may be signed; bundled third-party open-source programs keep their own upstream identity and licenses.
 
 The project roles, release rules, privacy commitments, and current signing status are documented in [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md). Maintainer implementation details are in [docs/SIGNING.md](docs/SIGNING.md).
 
