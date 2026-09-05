@@ -27,15 +27,16 @@ class ReleaseGateTests(unittest.TestCase):
 
     def test_windows_beta_artifacts_are_split(self):
         text = (ROOT / ".github" / "workflows" / "windows-release.yml").read_text(encoding="utf-8")
-        self.assertIn("Cammetry-Setup-v0.5.1-UNSIGNED-BETA", text)
-        self.assertIn("Cammetry-Portable-EXE-v0.5.1-UNSIGNED-BETA", text)
-        self.assertIn("Cammetry-Portable-ZIP-v0.5.1-UNSIGNED-BETA", text)
-        self.assertNotIn("name: Cammetry-Windows-v0.5.1-UNSIGNED-BETA", text)
+        self.assertIn("Cammetry-Setup-v0.6.0-beta-UNSIGNED", text)
+        self.assertIn("Cammetry-Portable-EXE-v0.6.0-beta-UNSIGNED", text)
+        self.assertIn("Cammetry-Portable-ZIP-v0.6.0-beta-UNSIGNED", text)
+        self.assertIn("prerelease: true", text)
+        self.assertNotIn("name: Cammetry-Windows-v0.6.0-beta-UNSIGNED", text)
 
-    def test_release_entrypoint_uses_latest_beta_ui_layer(self):
+    def test_beta_entrypoint_uses_v060_ui_layer(self):
         text = (ROOT / "cammetry.py").read_text(encoding="utf-8")
-        self.assertIn('APP_VERSION = "0.5.1"', text)
-        self.assertIn("from tts_hotfix_ui import App", text)
+        self.assertIn('APP_VERSION = "0.6.0-beta"', text)
+        self.assertIn("from tts_v060_ui import App", text)
 
     def test_event_browser_tree_and_scrollbar_share_the_same_parent(self):
         text = (ROOT / "tts_final_ui.py").read_text(encoding="utf-8")

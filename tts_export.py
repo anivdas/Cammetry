@@ -52,6 +52,7 @@ class ExportOptions:
     timestamp_format: str = "%Y-%m-%d %I:%M:%S %p"
     show_minimap: bool = False
     show_gps_text: bool = False
+    strip_metadata: bool = True
     show_gforce: bool = True
     blur_zones: List[BlurZone] = field(default_factory=list)
 
@@ -337,6 +338,8 @@ def export_video(
 
         cmd += ["-filter_complex", ";".join(filters), "-map", f"[{current}]", "-an"]
         cmd += _codec_args(codec, options.quality)
+        if options.strip_metadata:
+            cmd += ["-map_metadata", "-1", "-map_chapters", "-1"]
         cmd += ["-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)]
         _run_ffmpeg(cmd, duration, progress_cb)
     return encoder_name

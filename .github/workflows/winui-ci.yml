@@ -1,0 +1,28 @@
+name: WinUI 3 shell
+
+on:
+  push:
+    branches: [ main, "feature/v0.6-*" ]
+    paths:
+      - "windows/Cammetry.WinUI/**"
+      - ".github/workflows/winui-ci.yml"
+  pull_request:
+    paths:
+      - "windows/Cammetry.WinUI/**"
+      - ".github/workflows/winui-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore WinUI shell
+        run: dotnet restore windows/Cammetry.WinUI/Cammetry.WinUI.csproj -p:Platform=x64
+      - name: Build WinUI shell
+        run: dotnet build windows/Cammetry.WinUI/Cammetry.WinUI.csproj --configuration Release --no-restore -p:Platform=x64 -p:AppxPackageSigningEnabled=false

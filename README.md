@@ -29,6 +29,12 @@ The source code is published under the [MIT License](LICENSE). The MIT license a
 - Optional update, support, and sharing integrations are explicit and configurable.
 - Windows installer and portable builds.
 
+The `feature/v0.6-enhancements` development line adds a Local Library, continuous
+event playback, local review markers, an Incident Workspace, Privacy Export,
+compatibility preflight, and the first real WinUI 3 migration shell. Released
+v0.5.x builds continue to use the proven Tkinter interface while the native
+Windows shell progresses through its documented migration gates.
+
 See [docs/FEATURES.md](docs/FEATURES.md) for the detailed feature list.
 
 ## Privacy first
@@ -45,7 +51,7 @@ For normal users, download the latest installer from the [Cammetry Releases](htt
 
 A portable executable/ZIP is also produced for users who prefer not to install the application.
 
-Cammetry v0.5.0 and v0.5.1 Beta are unsigned Windows pre-releases. Windows may display an unknown-publisher or SmartScreen warning; verify that downloads came from the official Cammetry Releases page before running them.
+Cammetry v0.5.0, v0.5.1 Beta, and v0.6.0 Beta are unsigned Windows pre-releases. Windows may display an unknown-publisher or SmartScreen warning; verify that downloads came from the official Cammetry Releases page before running them.
 
 ## Code signing policy
 
@@ -111,6 +117,14 @@ Cammetry/
 ├─ tts_settings.py
 ├─ tts_locales.py
 ├─ tts_map.py
+├─ tts_sequence.py
+├─ tts_event_detection.py
+├─ tts_compatibility.py
+├─ tts_library.py
+├─ tts_incident.py
+├─ tts_privacy.py
+├─ cammetry_bridge.py
+├─ windows/Cammetry.WinUI/
 ├─ assets/
 ├─ installer/
 ├─ share_backend/
@@ -119,7 +133,8 @@ Cammetry/
 └─ .github/
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for component boundaries.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for component boundaries and
+[docs/WINUI3.md](docs/WINUI3.md) for the native Windows migration status.
 
 ## Contributing
 
