@@ -2,6 +2,10 @@ name: Package Cammetry v0.6.0 Beta
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ "feature/v0.6-enhancements" ]
+    paths:
+      - ".github/releases/v0.6.0-beta.ready"
 
 permissions:
   contents: write

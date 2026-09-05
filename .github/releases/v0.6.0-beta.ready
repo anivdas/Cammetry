@@ -1,0 +1,4 @@
+Cammetry v0.6.0 Beta packaging approved.
+
+This marker intentionally triggers the one-time unsigned Windows beta build,
+smoke test, checksum generation, and GitHub prerelease publication workflow.
