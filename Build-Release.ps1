@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
-$Version = '0.6.0-dev'
+$Version = '0.6.0-beta'
 $Venv = Join-Path $PSScriptRoot '.build-venv'
 $Python = Join-Path $Venv 'Scripts\python.exe'
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0 Development
+## 0.6.0 Beta
 
 ### Review and reliability
 - Added a Compatibility Center covering FFmpeg, runtime-tested encoders, camera availability, video probing, telemetry, free space, and estimated export size.

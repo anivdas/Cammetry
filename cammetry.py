@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import sys
 
-APP_VERSION = "0.6.0-dev"
+APP_VERSION = "0.6.0-beta"
 
 
 def enable_windows_dpi_awareness() -> None:

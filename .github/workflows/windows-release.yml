@@ -1,19 +1,20 @@
-name: Build Unsigned Windows Test Artifacts
+name: Package Cammetry v0.6.0 Beta
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ v0.5.1-beta ]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: cammetry-windows-beta-${{ github.ref }}
-  cancel-in-progress: true
+  group: cammetry-windows-v0.6.0-beta
+  cancel-in-progress: false
+
+env:
+  VERSION: 0.6.0-beta
 
 jobs:
-  build:
+  build-test-publish:
     runs-on: windows-latest
 
     steps:
@@ -24,7 +25,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+          cache: pip
 
       - name: Install Python build dependencies
         shell: pwsh
@@ -36,74 +37,123 @@ jobs:
         shell: pwsh
         run: choco install nsis --no-progress -y
 
-      - name: Build unsigned Windows test artifacts
+      - name: Verify release version is consistent
+        shell: pwsh
+        run: |
+          $Expected = '0.6.0-beta'
+          $Files = @('cammetry.py', 'Build-Release.ps1', 'installer/Cammetry.nsi', 'version_info.txt')
+          foreach ($File in $Files) {
+            if ((Get-Content $File -Raw) -notmatch [regex]::Escape($Expected)) {
+              throw "$File does not contain release version $Expected"
+            }
+          }
+
+      - name: Build unsigned Windows beta
         shell: pwsh
         run: .\Build-Release.ps1
 
-      - name: Smoke-test Setup install, packaged launch, and uninstall
+      - name: Smoke-test install, packaged launch, and uninstall
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $Setup = (Resolve-Path '.\release\Cammetry-Setup-v0.5.1.exe').Path
+          $Setup = (Resolve-Path ".\release\Cammetry-Setup-v$env:VERSION.exe").Path
           $SmokeDir = Join-Path $env:RUNNER_TEMP 'CammetrySmoke'
           Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
 
-          Write-Host "Installing beta silently to $SmokeDir"
-          # NSIS Setup/Uninstall are GUI-subsystem executables; invoking them with
-          # '&' does not reliably populate PowerShell's $LASTEXITCODE. Wait for
-          # the actual process and inspect its ExitCode instead.
-          $InstallProcess = Start-Process -FilePath $Setup -ArgumentList @('/S', "/D=$SmokeDir") -Wait -PassThru
-          if ($InstallProcess.ExitCode -ne 0) { throw "Setup smoke install failed with exit code $($InstallProcess.ExitCode)" }
+          $Install = Start-Process -FilePath $Setup -ArgumentList @('/S', "/D=$SmokeDir") -Wait -PassThru
+          if ($Install.ExitCode -ne 0) { throw "Setup failed with exit code $($Install.ExitCode)" }
 
           $AppExe = Join-Path $SmokeDir 'Cammetry.exe'
           $Uninstaller = Join-Path $SmokeDir 'Uninstall.exe'
-          if (-not (Test-Path $AppExe)) { throw 'Setup completed but Cammetry.exe was not installed.' }
-          if (-not (Test-Path $Uninstaller)) { throw 'Setup completed but Uninstall.exe was not installed.' }
+          if (-not (Test-Path $AppExe)) { throw 'Cammetry.exe was not installed.' }
+          if (-not (Test-Path $Uninstaller)) { throw 'Uninstall.exe was not installed.' }
 
-          $Version = (Get-Item $AppExe).VersionInfo.ProductVersion
-          if ($Version -notlike '0.5.1*') { throw "Installed Cammetry.exe has unexpected ProductVersion: $Version" }
+          $ProductVersion = (Get-Item $AppExe).VersionInfo.ProductVersion
+          if ($ProductVersion -notlike '0.6.0-beta*') {
+            throw "Unexpected installed ProductVersion: $ProductVersion"
+          }
 
-          Write-Host 'Launching packaged Cammetry.exe for startup smoke test...'
           $Process = Start-Process -FilePath $AppExe -PassThru
-          Start-Sleep -Seconds 4
-          if ($Process.HasExited) { throw "Packaged Cammetry.exe exited during startup smoke test with code $($Process.ExitCode)." }
+          Start-Sleep -Seconds 5
+          if ($Process.HasExited) {
+            throw "Cammetry exited during startup with code $($Process.ExitCode)"
+          }
           Stop-Process -Id $Process.Id -Force
           $Process.WaitForExit()
 
-          Write-Host 'Running silent uninstall...'
-          $UninstallProcess = Start-Process -FilePath $Uninstaller -ArgumentList @('/S') -Wait -PassThru
-          if ($UninstallProcess.ExitCode -ne 0) { throw "Uninstall smoke test failed with exit code $($UninstallProcess.ExitCode)" }
+          $Uninstall = Start-Process -FilePath $Uninstaller -ArgumentList @('/S') -Wait -PassThru
+          if ($Uninstall.ExitCode -ne 0) { throw "Uninstall failed with exit code $($Uninstall.ExitCode)" }
           Start-Sleep -Seconds 2
           if (Test-Path $SmokeDir) {
-            $Remaining = Get-ChildItem -Force $SmokeDir -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-            throw "Uninstall left the install directory behind. Remaining: $($Remaining -join ', ')"
+            $Remaining = Get-ChildItem -Force $SmokeDir -ErrorAction SilentlyContinue
+            throw "Uninstall left files behind: $($Remaining.FullName -join ', ')"
           }
-          Write-Host 'Setup/install/launch/uninstall smoke test passed.' -ForegroundColor Green
+
+      - name: Create SHA-256 checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File |
+            Where-Object Extension -In '.exe', '.zip' |
+            ForEach-Object {
+              $Hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$Hash  $($_.Name)" | Set-Content -Encoding ascii "$($_.FullName).sha256"
+            }
 
       - name: Upload Setup installer
         uses: actions/upload-artifact@v4
         with:
-          name: Cammetry-Setup-v0.5.1-UNSIGNED-BETA
-          path: release/Cammetry-Setup-v0.5.1.exe
+          name: Cammetry-Setup-v0.6.0-beta-UNSIGNED
+          path: |
+            release/Cammetry-Setup-v0.6.0-beta.exe
+            release/Cammetry-Setup-v0.6.0-beta.exe.sha256
           if-no-files-found: error
 
       - name: Upload portable EXE
         uses: actions/upload-artifact@v4
         with:
-          name: Cammetry-Portable-EXE-v0.5.1-UNSIGNED-BETA
-          path: release/Cammetry-Portable-v0.5.1.exe
+          name: Cammetry-Portable-EXE-v0.6.0-beta-UNSIGNED
+          path: |
+            release/Cammetry-Portable-v0.6.0-beta.exe
+            release/Cammetry-Portable-v0.6.0-beta.exe.sha256
           if-no-files-found: error
 
       - name: Upload portable ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: Cammetry-Portable-ZIP-v0.5.1-UNSIGNED-BETA
-          path: release/Cammetry-Portable-v0.5.1.zip
+          name: Cammetry-Portable-ZIP-v0.6.0-beta-UNSIGNED
+          path: |
+            release/Cammetry-Portable-v0.6.0-beta.zip
+            release/Cammetry-Portable-v0.6.0-beta.zip.sha256
           if-no-files-found: error
 
-      - name: Unsigned-build notice
-        shell: pwsh
-        run: |
-          Write-Host 'These artifacts are intentionally unsigned v0.5.1 beta test builds.'
-          Write-Host 'Do not attach them to an official GitHub Release.'
-          Write-Host 'Only publish these files when the release page clearly identifies them as unsigned.'
+      - name: Publish GitHub prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.6.0-beta
+          target_commitish: ${{ github.sha }}
+          name: Cammetry v0.6.0 Beta - Unsigned Test Build
+          prerelease: true
+          generate_release_notes: false
+          body: |
+            Cammetry v0.6.0 Beta adds the new review, incident, privacy, library,
+            continuous-playback, compatibility, and local event-detection features.
+
+            This Windows test build is unsigned. Windows SmartScreen may show an
+            unknown-publisher warning. Download only from this official release page
+            and verify the accompanying SHA-256 file if desired.
+
+            The WinUI 3 shell is included in the source as a compiled migration
+            foundation, but this beta installer continues to use Cammetry's mature
+            desktop interface while native viewer parity is completed.
+
+            Cammetry processes footage and telemetry locally by default. Preserve
+            original TeslaCam files and report bugs without publicly uploading private
+            footage or GPS data.
+          files: |
+            release/Cammetry-Setup-v0.6.0-beta.exe
+            release/Cammetry-Setup-v0.6.0-beta.exe.sha256
+            release/Cammetry-Portable-v0.6.0-beta.exe
+            release/Cammetry-Portable-v0.6.0-beta.exe.sha256
+            release/Cammetry-Portable-v0.6.0-beta.zip
+            release/Cammetry-Portable-v0.6.0-beta.zip.sha256
+          fail_on_unmatched_files: true

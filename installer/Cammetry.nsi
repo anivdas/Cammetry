@@ -4,7 +4,7 @@ Unicode true
 !include "WinMessages.nsh"
 
 !define APP_NAME "Cammetry"
-!define APP_VERSION "0.6.0-dev"
+!define APP_VERSION "0.6.0-beta"
 !define APP_EXE "Cammetry.exe"
 !define APP_DIR "Cammetry"
 !define APP_REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cammetry"

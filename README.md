@@ -51,7 +51,7 @@ For normal users, download the latest installer from the [Cammetry Releases](htt
 
 A portable executable/ZIP is also produced for users who prefer not to install the application.
 
-Cammetry v0.5.0 and v0.5.1 Beta are unsigned Windows pre-releases. Windows may display an unknown-publisher or SmartScreen warning; verify that downloads came from the official Cammetry Releases page before running them.
+Cammetry v0.5.0, v0.5.1 Beta, and v0.6.0 Beta are unsigned Windows pre-releases. Windows may display an unknown-publisher or SmartScreen warning; verify that downloads came from the official Cammetry Releases page before running them.
 
 ## Code signing policy
 
